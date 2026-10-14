@@ -1,7 +1,19 @@
+#ifndef TWI_H
+#define TWI_H
+
+
 #define F_CPU 16000000UL
+#define TWI_CHECK(expr, msg, err)\
+   do{                           \
+      if(expr != msg){           \  
+        twi_stop();              \
+        return err;              \  
+      }                          \
+   }while(0)                     
+   
 #include <avr/io.h>
 #include <util/delay.h>
-#define BMP280_ADDR 0x76
+
 
 void init_TWI();
 
@@ -20,3 +32,5 @@ uint8_t twi_read_reg(uint8_t addr, uint8_t reg);
 uint8_t twi_write_reg(uint8_t addr, uint8_t reg, uint8_t value);
 
 uint8_t twi_read_regs(uint8_t addr, uint8_t reg, uint8_t *buf, uint8_t len);
+
+#endif

@@ -1,11 +1,6 @@
+#include <Arduino.h>
 #include "TWI.h"
-#define TWI_CHECK(expr, msg, err)\
-   do{                           \
-      if(expr != msg){           \  
-        twi_stop();              \
-        return err;              \  
-      }                          \
-   }while(0)                     \
+
 
 void init_TWI(){
     TWBR = 72;
@@ -55,13 +50,60 @@ uint8_t twi_read_reg(uint8_t addr, uint8_t reg){
   twi_stop();
   return res;
 }
-uint8_t twi_write_reg(uint8_t addr, uint8_t reg, uint8_t value){
-  TWI_CHECK(twi_start(), 0x08, 1);
-  TWI_CHECK(twi_write(addr << 1 | 0), 0x18, 2);
-  TWI_CHECK(twi_write(reg), 0x18, 3);
-  TWI_CHECK(twi_write(value), 0x28, 4);
-  twi_stop();
-  return 0;
+uint8_t twi_write_reg(uint8_t addr, uint8_t reg, uint8_t value)
+{
+    uint8_t status;
+
+    Serial.println("TW: START");
+
+    status = twi_start();
+    Serial.print("START status: 0x");
+    Serial.println(status, HEX);
+
+    if (status != 0x08)
+    {
+        twi_stop();
+        return 1;
+    }
+
+    status = twi_write(addr << 1);
+
+    Serial.print("Address status: 0x");
+    Serial.println(status, HEX);
+
+    if (status != 0x18)
+    {
+        twi_stop();
+        return 2;
+    }
+
+    status = twi_write(reg);
+
+    Serial.print("Register status: 0x");
+    Serial.println(status, HEX);
+
+    if (status != 0x28)
+    {
+        twi_stop();
+        return 3;
+    }
+
+    status = twi_write(value);
+
+    Serial.print("Value status: 0x");
+    Serial.println(status, HEX);
+
+    if (status != 0x28)
+    {
+        twi_stop();
+        return 4;
+    }
+
+    twi_stop();
+
+    Serial.println("TW: success");
+
+    return 0;
 }
 
 uint8_t twi_read_regs(uint8_t addr, uint8_t reg, uint8_t *buf, uint8_t len){
