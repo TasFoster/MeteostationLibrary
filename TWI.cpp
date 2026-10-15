@@ -1,122 +1,352 @@
 #include <Arduino.h>
 #include "TWI.h"
 
+// ============================================================
+// Инициализация аппаратного интерфейса TWI
+// ============================================================
 
-void init_TWI(){
+void TWI::init() {
+    // Настройка скорости TWI.
+    // При частоте CPU 16 МГц и TWBR = 72
+    // скорость SCL составляет примерно 100 кГц.
     TWBR = 72;
+
+    // Предделитель частоты = 1
     TWSR = 0x00;
+
+    // Включаем аппаратный интерфейс TWI
     TWCR = (1 << TWEN);
 }
 
-uint8_t twi_start(){
-  TWCR = (1 << TWSTA) | (1 << TWEN) | (1 << TWINT);
-  while (!(TWCR & (1 << TWINT)));
-  return TWSR & 0xF8;
+
+// ============================================================
+// Генерация условия START
+// ============================================================
+
+uint8_t TWI::start() {
+    TWCR = (1 << TWSTA)
+         | (1 << TWEN)
+         | (1 << TWINT);
+
+    // Ждём завершения операции
+    while (!(TWCR & (1 << TWINT)));
+
+    // Возвращаем статус TWI
+    return TWSR & 0xF8;
 }
 
-void twi_stop(){
-  TWCR = (1 << TWSTO) | (1 << TWEN) | (1 << TWINT);
-  while ((TWCR & (1 << TWSTO)));
+
+// ============================================================
+// Генерация условия STOP
+// ============================================================
+
+void TWI::stop() {
+    TWCR = (1 << TWSTO)
+         | (1 << TWEN)
+         | (1 << TWINT);
+
+    // Ждём завершения генерации STOP
+    while (TWCR & (1 << TWSTO));
 }
 
-uint8_t twi_write(uint8_t data){
-  TWDR = data;
-  TWCR = (1 << TWINT) | (1 << TWEN);
-  while (!(TWCR & (1 << TWINT)));
-  return TWSR & 0xF8;
+
+// ============================================================
+// Передача одного байта
+// ============================================================
+
+uint8_t TWI::write(uint8_t data) {
+    // Помещаем данные в регистр передачи
+    TWDR = data;
+
+    // Запускаем передачу
+    TWCR = (1 << TWINT)
+         | (1 << TWEN);
+
+    // Ждём завершения передачи
+    while (!(TWCR & (1 << TWINT)));
+
+    // Возвращаем статус операции
+    return TWSR & 0xF8;
 }
 
-uint8_t twi_read_ack(){
-  TWCR = (1 << TWINT) | (1 << TWEN) | (1 << TWEA);
-  while(!(TWCR & (1 << TWINT)));
-  return TWDR;
+
+// ============================================================
+// Чтение байта с отправкой ACK
+// ============================================================
+
+uint8_t TWI::readAck() {
+    TWCR = (1 << TWINT)
+         | (1 << TWEN)
+         | (1 << TWEA);
+
+    // Ждём получения байта
+    while (!(TWCR & (1 << TWINT)));
+
+    return TWDR;
 }
 
-uint8_t twi_read_nack(){
-  TWCR = (1 << TWINT) | (1 << TWEN);
-  while(!(TWCR & (1 << TWINT)));
-  
-  return TWDR;
+
+// ============================================================
+// Чтение байта с отправкой NACK
+// ============================================================
+
+uint8_t TWI::readNack() {
+    TWCR = (1 << TWINT)
+         | (1 << TWEN);
+
+    // Ждём получения байта
+    while (!(TWCR & (1 << TWINT)));
+
+    return TWDR;
 }
 
-uint8_t twi_read_reg(uint8_t addr, uint8_t reg){
 
-  TWI_CHECK(twi_start(), 0x08, 1);
-  TWI_CHECK(twi_write(addr << 1 | 0), 0x18, 2);
-  TWI_CHECK(twi_write(reg), 0x28, 3);
-  TWI_CHECK(twi_start(), 0x10, 4);
-  TWI_CHECK(twi_write(addr << 1 | 1), 0x40, 5);
-  uint8_t res = twi_read_nack();
-  twi_stop();
-  return res;
-}
-uint8_t twi_write_reg(uint8_t addr, uint8_t reg, uint8_t value)
-{
+// ============================================================
+// Чтение одного регистра: вариант с кодом ошибки
+// ============================================================
+//
+// ВАЖНО:
+// Этот метод возвращает либо значение регистра,
+// либо код ошибки.
+//
+// Поэтому его лучше не использовать там, где нужно
+// однозначно отличать данные от ошибки.
+// ============================================================
+
+uint8_t TWI::readReg(uint8_t addr, uint8_t reg) {
     uint8_t status;
 
-    Serial.println("TW: START");
+    // START
+    status = start();
 
-    status = twi_start();
-    Serial.print("START status: 0x");
-    Serial.println(status, HEX);
-
-    if (status != 0x08)
-    {
-        twi_stop();
+    if (status != 0x08) {
+        stop();
         return 1;
     }
 
-    status = twi_write(addr << 1);
+    // Адрес устройства + запись
+    status = write(addr << 1);
 
-    Serial.print("Address status: 0x");
-    Serial.println(status, HEX);
-
-    if (status != 0x18)
-    {
-        twi_stop();
+    if (status != 0x18) {
+        stop();
         return 2;
     }
 
-    status = twi_write(reg);
+    // Адрес регистра
+    status = write(reg);
 
-    Serial.print("Register status: 0x");
-    Serial.println(status, HEX);
-
-    if (status != 0x28)
-    {
-        twi_stop();
+    if (status != 0x28) {
+        stop();
         return 3;
     }
 
-    status = twi_write(value);
+    // Повторный START
+    status = start();
 
-    Serial.print("Value status: 0x");
-    Serial.println(status, HEX);
-
-    if (status != 0x28)
-    {
-        twi_stop();
+    if (status != 0x10) {
+        stop();
         return 4;
     }
 
-    twi_stop();
+    // Адрес устройства + чтение
+    status = write((addr << 1) | 1);
 
-    Serial.println("TW: success");
+    if (status != 0x40) {
+        stop();
+        return 5;
+    }
+
+    // Читаем один байт с NACK
+    uint8_t value = readNack();
+
+    stop();
+
+    return value;
+}
+
+
+// ============================================================
+// Чтение одного регистра: вариант с отдельным статусом
+// ============================================================
+//
+// Возвращает:
+// 0 — успех;
+// 1...5 — ошибка соответствующего этапа.
+//
+// Прочитанное значение записывается в value.
+// ============================================================
+
+uint8_t TWI::readReg(
+    uint8_t addr,
+    uint8_t reg,
+    uint8_t& value
+) {
+    uint8_t status;
+
+    // START
+    status = start();
+
+    if (status != 0x08) {
+        stop();
+        return 1;
+    }
+
+    // Адрес устройства + запись
+    status = write(addr << 1);
+
+    if (status != 0x18) {
+        stop();
+        return 2;
+    }
+
+    // Адрес регистра
+    status = write(reg);
+
+    if (status != 0x28) {
+        stop();
+        return 3;
+    }
+
+    // Повторный START
+    status = start();
+
+    if (status != 0x10) {
+        stop();
+        return 4;
+    }
+
+    // Адрес устройства + чтение
+    status = write((addr << 1) | 1);
+
+    if (status != 0x40) {
+        stop();
+        return 5;
+    }
+
+    // Получаем данные
+    value = readNack();
+
+    stop();
 
     return 0;
 }
 
-uint8_t twi_read_regs(uint8_t addr, uint8_t reg, uint8_t *buf, uint8_t len){
-  if (len <= 0) return -1;
-  TWI_CHECK(twi_start(), 0x08, 1);
-  TWI_CHECK(twi_write(addr << 1 | 0), 0x18, 2);
-  TWI_CHECK(twi_write(reg), 0x28, 3);
-  TWI_CHECK(twi_start(), 0x10, 4);
-  TWI_CHECK(twi_write(addr << 1 | 1), 0x40, 5);
-  for(uint8_t i = 0; i < len - 1; i++){
-    buf[i] = twi_read_ack();
-  }
-  buf[len - 1] = twi_read_nack();
-  twi_stop();
-  return 0;
+
+// ============================================================
+// Запись одного регистра
+// ============================================================
+
+uint8_t TWI::writeReg(
+    uint8_t addr,
+    uint8_t reg,
+    uint8_t value
+) {
+    uint8_t status;
+
+    // START
+    status = start();
+
+    if (status != 0x08) {
+        stop();
+        return 1;
+    }
+
+    // Адрес устройства + запись
+    status = write(addr << 1);
+
+    if (status != 0x18) {
+        stop();
+        return 2;
+    }
+
+    // Адрес регистра
+    status = write(reg);
+
+    if (status != 0x28) {
+        stop();
+        return 3;
+    }
+
+    // Значение регистра
+    status = write(value);
+
+    if (status != 0x28) {
+        stop();
+        return 4;
+    }
+
+    stop();
+
+    return 0;
+}
+
+
+// ============================================================
+// Чтение нескольких последовательных регистров
+// ============================================================
+
+uint8_t TWI::readRegs(
+    uint8_t addr,
+    uint8_t reg,
+    uint8_t* buf,
+    uint8_t len
+) {
+    // Проверяем аргументы
+    if (len == 0 || buf == nullptr) {
+        return 1;
+    }
+
+    uint8_t status;
+
+    // START
+    status = start();
+
+    if (status != 0x08) {
+        stop();
+        return 2;
+    }
+
+    // Адрес устройства + запись
+    status = write(addr << 1);
+
+    if (status != 0x18) {
+        stop();
+        return 3;
+    }
+
+    // Начальный адрес регистра
+    status = write(reg);
+
+    if (status != 0x28) {
+        stop();
+        return 4;
+    }
+
+    // Повторный START
+    status = start();
+
+    if (status != 0x10) {
+        stop();
+        return 5;
+    }
+
+    // Адрес устройства + чтение
+    status = write((addr << 1) | 1);
+
+    if (status != 0x40) {
+        stop();
+        return 6;
+    }
+
+    // Читаем все байты, кроме последнего, с ACK
+    for (uint8_t i = 0; i < len - 1; i++) {
+        buf[i] = readAck();
+    }
+
+    // Последний байт читаем с NACK
+    buf[len - 1] = readNack();
+
+    stop();
+
+    return 0;
 }

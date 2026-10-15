@@ -1,36 +1,28 @@
 #ifndef TWI_H
 #define TWI_H
 
+#include <Arduino.h>
 
-#define F_CPU 16000000UL
-#define TWI_CHECK(expr, msg, err)\
-   do{                           \
-      if(expr != msg){           \  
-        twi_stop();              \
-        return err;              \  
-      }                          \
-   }while(0)                     
-   
-#include <avr/io.h>
-#include <util/delay.h>
+class TWI {
+public:
+    // Инициализация интерфейса TWI
+    void init();
 
+    // Управление передачей
+    uint8_t start();
+    void stop();
 
-void init_TWI();
+    // Передача и чтение байтов
+    uint8_t write(uint8_t data);
+    uint8_t readAck();
+    uint8_t readNack();
 
-uint8_t twi_start();
-
-void twi_stop();
-
-uint8_t twi_write(uint8_t data);
-
-uint8_t twi_read_ack();
-
-uint8_t twi_read_nack();
-
-uint8_t twi_read_reg(uint8_t addr, uint8_t reg);
-
-uint8_t twi_write_reg(uint8_t addr, uint8_t reg, uint8_t value);
-
-uint8_t twi_read_regs(uint8_t addr, uint8_t reg, uint8_t *buf, uint8_t len);
+    // Работа с регистрами устройства
+    uint8_t readReg(uint8_t addr, uint8_t reg);
+    uint8_t readReg(uint8_t addr, uint8_t reg, uint8_t& value);
+    uint8_t writeReg(uint8_t addr, uint8_t reg, uint8_t value);
+    uint8_t readRegs(uint8_t addr, uint8_t reg,
+                     uint8_t* buf, uint8_t len);
+};
 
 #endif
