@@ -1,9 +1,4 @@
-#include <Arduino.h>
 #include "BMP.h"
-
-// ============================================================
-// Конструктор
-// ============================================================
 
 BME280::BME280(TWI& twi, uint8_t address)
     : bus(twi)
@@ -13,52 +8,44 @@ BME280::BME280(TWI& twi, uint8_t address)
 }
 
 
-// ============================================================
 // Инициализация датчика
-// ============================================================
-
 uint8_t BME280::begin()
 {
-    uint8_t result = reset();
+    uint8_t status = reset();
 
-    if (result != 0) {
-        return result;
+    if (status != 0) {
+        return status;
     }
 
-    result = readCalib();
+    status = readCalib();
 
-    if (result != 0) {
-        return result + 10;
+    if (status != 0) {
+        return status + 10;
     }
 
     return 0;
 }
 
 
-// ============================================================
 // Сброс датчика
-// ============================================================
-
 uint8_t BME280::reset()
 {
-    // Регистр сброса 0xE0, команда 0xB6
-    uint8_t result = bus.writeReg(data.addr, 0xE0, 0xB6);
+    uint8_t status = bus.writeReg(data.addr, 0xE0, 0xB6);
 
-    if (result != 0) {
-        return result;
+    if (status != 0) {
+        return status;
     }
 
-    // После сброса BME280 обновляет внутренние данные
-    uint32_t startTime = millis();
+    unsigned long startTime = millis();
 
     while (true) {
-        int8_t status = checkStatus('u');
+        int8_t result = checkStatus('u');
 
-        if (status == -1) {
-            break;
+        if (result == -1) {
+            return 0;
         }
 
-        if (status == -2) {
+        if (result == -2) {
             return 7;
         }
 
@@ -66,24 +53,12 @@ uint8_t BME280::reset()
             return 6;
         }
     }
-
-    return 0;
 }
 
 
-// ============================================================
 // Проверка состояния датчика
-// ============================================================
-//
-// mode == 'u' : проверка im_update, бит 0 регистра 0xF3
-// mode == 'm' : проверка measuring, бит 3 регистра 0xF3
-//
-// Возвращает:
-//  0  — процесс ещё идёт
-// -1  — процесс завершён
-// -2  — ошибка чтения регистра
-// ============================================================
-
+// 'u' — обновление калибровочных данных
+// 'm' — выполнение измерения
 int8_t BME280::checkStatus(char mode)
 {
     uint8_t status = 0;
@@ -93,180 +68,126 @@ int8_t BME280::checkStatus(char mode)
     }
 
     if (mode == 'u') {
-        if (status & (1 << 0)) {
-            return 0;
-        }
-
-        return -1;
+        return (status & 0x01) ? 0 : -1;
     }
 
     if (mode == 'm') {
-        if (status & (1 << 3)) {
-            return 0;
-        }
-
-        return -1;
+        return (status & 0x08) ? 0 : -1;
     }
 
     return -2;
 }
 
 
-// ============================================================
-// Определение режима работы
-// ============================================================
-//
-// Возвращает:
-// 's' — Sleep
-// 'f' — Forced
-// 'n' — Normal
-// '?' — ошибка чтения
-// ============================================================
-
+// Проверка режима работы
 char BME280::checkMode()
 {
-    uint8_t value = 0;
+    uint8_t ctrl_meas = 0;
 
-    if (bus.readReg(data.addr, 0xF4, value) != 0) {
+    if (bus.readReg(data.addr, 0xF4, ctrl_meas) != 0) {
         return '?';
     }
 
-    uint8_t mode = value & 0x03;
+    uint8_t mode = ctrl_meas & 0x03;
 
     if (mode == 0) {
-        return 's';
+        return 's'; // Sleep
     }
 
     if (mode == 1 || mode == 2) {
-        return 'f';
+        return 'f'; // Forced
     }
 
-    if (mode == 3) {
-        return 'n';
-    }
-
-    return '?';
+    return 'n'; // Normal
 }
 
 
-// ============================================================
-// Настройка регистра config (0xF5)
-// ============================================================
-
+// Настройка регистра CONFIG
 uint8_t BME280::setConfig(
     uint8_t t_sb,
     uint8_t filter,
     uint8_t spi3w_en
 )
 {
-    uint8_t conf =
-          (spi3w_en & 0x01)
-        | ((filter & 0x07) << 2)
-        | ((t_sb & 0x07) << 5);
+    if (t_sb > 7 || filter > 7 || spi3w_en > 1) {
+        return 1;
+    }
 
-    return bus.writeReg(data.addr, 0xF5, conf);
+    uint8_t config =
+        (t_sb << 5) |
+        (filter << 2) |
+        spi3w_en;
+
+    return bus.writeReg(data.addr, 0xF5, config);
 }
 
 
-// ============================================================
 // Чтение температуры
-// ============================================================
-//
-// res  — необработанное значение ADC
-// osrs — oversampling температуры:
-//        0 = выключен, 1 = x1, 2 = x2, ... 5 = x16
-// mode — режим измерения:
-//        1 = Forced, 2 = Forced, 3 = Normal
-//
-// Возвращает 0 при успехе, ненулевой код при ошибке.
-// ============================================================
-
 uint8_t BME280::readTemp(
     uint32_t& res,
     uint8_t osrs,
     uint8_t mode
 )
 {
-    if (mode == 0 || mode > 3 || osrs > 5) {
+    if (osrs > 5 || mode < 1 || mode > 3) {
         return 1;
     }
 
-    uint8_t result = setConfig(5, 2, 0);
+    uint8_t status = setConfig(5, 2, 0);
 
-    if (result != 0) {
-        return 2;
+    if (status != 0) {
+        return status;
     }
 
-    // Для измерения температуры отключаем измерение влажности
-    result = bus.writeReg(data.addr, 0xF2, 0);
+    // Отключаем измерение влажности
+    status = bus.writeReg(data.addr, 0xF2, 0);
 
-    if (result != 0) {
-        return 3;
+    if (status != 0) {
+        return status;
     }
 
-    // ctrl_meas:
-    // [7:5] osrs_t
-    // [4:2] osrs_p = 0
-    // [1:0] mode
-    uint8_t ctrl_meas =
-          ((osrs & 0x07) << 5)
-        | (mode & 0x03);
+    // CTRL_MEAS: osrs_t [7:5], osrs_p [4:2], mode [1:0]
+    uint8_t ctrl_meas = (osrs << 5) | mode;
 
-    result = bus.writeReg(data.addr, 0xF4, ctrl_meas);
+    status = bus.writeReg(data.addr, 0xF4, ctrl_meas);
 
-    if (result != 0) {
-        return 4;
+    if (status != 0) {
+        return status;
     }
 
-    // В Forced mode ждём завершения измерения.
+    // В forced mode ожидаем завершения измерения
     if (mode != 3) {
-        uint32_t startTime = millis();
+        unsigned long startTime = millis();
 
-        while (true) {
-            int8_t status = checkStatus('m');
-
-            if (status == -1) {
-                break;
-            }
-
-            if (status == -2) {
-                return 7;
-            }
-
+        while (checkStatus('m') == 0) {
             if (millis() - startTime > 1000) {
-                return 5;
+                return 6;
             }
+        }
+
+        if (checkStatus('m') == -2) {
+            return 7;
         }
     }
 
-    // Считываем три регистра температуры: 0xFA–0xFC
-    uint8_t b[3];
+    uint8_t buf[3];
 
-    result = bus.readRegs(data.addr, 0xFA, b, 3);
+    status = bus.readRegs(data.addr, 0xFA, buf, 3);
 
-    if (result != 0) {
-        return 6;
+    if (status != 0) {
+        return status;
     }
 
-    // Температура представлена 20-битным числом
     res =
-          ((uint32_t)b[0] << 12)
-        | ((uint32_t)b[1] << 4)
-        | ((uint32_t)b[2] >> 4);
+        ((uint32_t)buf[0] << 12) |
+        ((uint32_t)buf[1] << 4) |
+        ((uint32_t)buf[2] >> 4);
 
     return 0;
 }
 
 
-// ============================================================
 // Чтение влажности
-// ============================================================
-//
-// osrs_h — oversampling влажности
-// osrs_t — oversampling температуры
-// mode   — режим измерения
-// ============================================================
-
 uint8_t BME280::readHum(
     uint32_t& res,
     uint8_t osrs_h,
@@ -274,80 +195,62 @@ uint8_t BME280::readHum(
     uint8_t mode
 )
 {
-    if (mode == 0 || mode > 3 || osrs_h > 5 || osrs_t > 5) {
+    if (osrs_h > 5 || osrs_t > 5 || mode < 1 || mode > 3) {
         return 1;
     }
 
-    uint8_t result = setConfig(5, 2, 0);
+    uint8_t status = setConfig(5, 2, 0);
 
-    if (result != 0) {
-        return 2;
+    if (status != 0) {
+        return status;
     }
 
-    // Сначала задаём oversampling влажности.
-    // Значение записывается в биты [2:0] регистра 0xF2.
-    result = bus.writeReg(data.addr, 0xF2, osrs_h & 0x07);
+    // CTRL_HUM необходимо записывать перед CTRL_MEAS
+    status = bus.writeReg(data.addr, 0xF2, osrs_h);
 
-    if (result != 0) {
-        return 3;
+    if (status != 0) {
+        return status;
     }
 
-    // Настраиваем oversampling температуры и режим
-    uint8_t ctrl_meas =
-          ((osrs_t & 0x07) << 5)
-        | (mode & 0x03);
+    uint8_t ctrl_meas = (osrs_t << 5) | mode;
 
-    result = bus.writeReg(data.addr, 0xF4, ctrl_meas);
+    status = bus.writeReg(data.addr, 0xF4, ctrl_meas);
 
-    if (result != 0) {
-        return 4;
+    if (status != 0) {
+        return status;
     }
 
     if (mode != 3) {
-        uint32_t startTime = millis();
+        unsigned long startTime = millis();
 
-        while (true) {
-            int8_t status = checkStatus('m');
-
-            if (status == -1) {
-                break;
-            }
-
-            if (status == -2) {
-                return 7;
-            }
-
+        while (checkStatus('m') == 0) {
             if (millis() - startTime > 1000) {
-                return 5;
+                return 6;
             }
+        }
+
+        if (checkStatus('m') == -2) {
+            return 7;
         }
     }
 
-    // Регистры влажности: 0xFD–0xFE
-    uint8_t b[2];
+    uint8_t buf[2];
 
-    result = bus.readRegs(data.addr, 0xFD, b, 2);
+    status = bus.readRegs(data.addr, 0xFD, buf, 2);
 
-    if (result != 0) {
-        return 6;
+    if (status != 0) {
+        return status;
     }
 
-    // Влажность представлена 16-битным числом
-    res = ((uint32_t)b[0] << 8) | b[1];
+    res =
+        ((uint32_t)buf[0] << 8) |
+        buf[1];
 
     return 0;
 }
 
 
-// ============================================================
 // Чтение давления
-// ============================================================
-//
-// osrs_p — oversampling давления
-// osrs_t — oversampling температуры
-// mode   — режим измерения
-// ============================================================
-
 uint8_t BME280::readPressure(
     uint32_t& res,
     uint8_t osrs_p,
@@ -355,316 +258,311 @@ uint8_t BME280::readPressure(
     uint8_t mode
 )
 {
-    if (mode == 0 || mode > 3 || osrs_p > 5 || osrs_t > 5) {
+    if (osrs_p > 5 || osrs_t > 5 || mode < 1 || mode > 3) {
         return 1;
     }
 
-    uint8_t result = setConfig(5, 2, 0);
+    uint8_t status = setConfig(5, 2, 0);
 
-    if (result != 0) {
-        return 2;
+    if (status != 0) {
+        return status;
     }
 
     // Отключаем измерение влажности
-    result = bus.writeReg(data.addr, 0xF2, 0);
+    status = bus.writeReg(data.addr, 0xF2, 0);
 
-    if (result != 0) {
-        return 3;
+    if (status != 0) {
+        return status;
     }
 
-    // ctrl_meas:
-    // [7:5] osrs_t
-    // [4:2] osrs_p
-    // [1:0] mode
     uint8_t ctrl_meas =
-          ((osrs_t & 0x07) << 5)
-        | ((osrs_p & 0x07) << 2)
-        | (mode & 0x03);
+        (osrs_t << 5) |
+        (osrs_p << 2) |
+        mode;
 
-    result = bus.writeReg(data.addr, 0xF4, ctrl_meas);
+    status = bus.writeReg(data.addr, 0xF4, ctrl_meas);
 
-    if (result != 0) {
-        return 4;
+    if (status != 0) {
+        return status;
     }
 
     if (mode != 3) {
-        uint32_t startTime = millis();
+        unsigned long startTime = millis();
 
-        while (true) {
-            int8_t status = checkStatus('m');
-
-            if (status == -1) {
-                break;
-            }
-
-            if (status == -2) {
-                return 7;
-            }
-
+        while (checkStatus('m') == 0) {
             if (millis() - startTime > 1000) {
-                return 5;
+                return 6;
             }
+        }
+
+        if (checkStatus('m') == -2) {
+            return 7;
         }
     }
 
-    // Регистры давления: 0xF7–0xF9
-    uint8_t b[3];
+    uint8_t buf[3];
 
-    result = bus.readRegs(data.addr, 0xF7, b, 3);
+    status = bus.readRegs(data.addr, 0xF7, buf, 3);
 
-    if (result != 0) {
-        return 6;
+    if (status != 0) {
+        return status;
     }
 
-    // Давление представлено 20-битным числом
     res =
-          ((uint32_t)b[0] << 12)
-        | ((uint32_t)b[1] << 4)
-        | ((uint32_t)b[2] >> 4);
+        ((uint32_t)buf[0] << 12) |
+        ((uint32_t)buf[1] << 4) |
+        ((uint32_t)buf[2] >> 4);
 
     return 0;
 }
 
 
-// ============================================================
 // Чтение калибровочных коэффициентов
-// ============================================================
-
 uint8_t BME280::readCalib()
 {
-    uint8_t block1[26];
-    uint8_t block2[7];
+    uint8_t buf1[26];
+    uint8_t buf2[7];
 
-    // Калибровочные данные 0x88–0xA1
-    uint8_t result = bus.readRegs(data.addr, 0x88, block1, 26);
+    uint8_t status = bus.readRegs(data.addr, 0x88, buf1, 26);
 
-    if (result != 0) {
-        return 1;
+    if (status != 0) {
+        return status;
     }
 
-    // Калибровочные данные влажности 0xE1–0xE7
-    result = bus.readRegs(data.addr, 0xE1, block2, 7);
+    status = bus.readRegs(data.addr, 0xE1, buf2, 7);
 
-    if (result != 0) {
-        return 2;
+    if (status != 0) {
+        return status;
     }
 
-    // --------------------------------------------------------
-    // Коэффициенты температуры
-    // --------------------------------------------------------
+    // Температура
+    data.dig_T1 = (uint16_t)buf1[1] << 8 | buf1[0];
+    data.dig_T2 = (int16_t)((uint16_t)buf1[3] << 8 | buf1[2]);
+    data.dig_T3 = (int16_t)((uint16_t)buf1[5] << 8 | buf1[4]);
 
-    data.dig_T1 =
-          (uint16_t)block1[0]
-        | ((uint16_t)block1[1] << 8);
+    // Давление
+    data.dig_P1 = (uint16_t)buf1[7] << 8 | buf1[6];
+    data.dig_P2 = (int16_t)((uint16_t)buf1[9] << 8 | buf1[8]);
+    data.dig_P3 = (int16_t)((uint16_t)buf1[11] << 8 | buf1[10]);
+    data.dig_P4 = (int16_t)((uint16_t)buf1[13] << 8 | buf1[12]);
+    data.dig_P5 = (int16_t)((uint16_t)buf1[15] << 8 | buf1[14]);
+    data.dig_P6 = (int16_t)((uint16_t)buf1[17] << 8 | buf1[16]);
+    data.dig_P7 = (int16_t)((uint16_t)buf1[19] << 8 | buf1[18]);
+    data.dig_P8 = (int16_t)((uint16_t)buf1[21] << 8 | buf1[20]);
+    data.dig_P9 = (int16_t)((uint16_t)buf1[23] << 8 | buf1[22]);
 
-    data.dig_T2 = (int16_t)(
-          (uint16_t)block1[2]
-        | ((uint16_t)block1[3] << 8)
-    );
+    // Влажность
+    data.dig_H1 = buf1[25];
 
-    data.dig_T3 = (int16_t)(
-          (uint16_t)block1[4]
-        | ((uint16_t)block1[5] << 8)
-    );
+    data.dig_H2 = (int16_t)((uint16_t)buf2[1] << 8 | buf2[0]);
+    data.dig_H3 = buf2[2];
 
-    // --------------------------------------------------------
-    // Коэффициенты давления
-    // --------------------------------------------------------
+    // dig_H4 и dig_H5 — 12-битные знаковые значения
+    int16_t h4 =
+        (int16_t)((int16_t)(int8_t)buf2[3] * 16 +
+                  (buf2[4] & 0x0F));
 
-    data.dig_P1 =
-          (uint16_t)block1[6]
-        | ((uint16_t)block1[7] << 8);
+    int16_t h5 =
+        (int16_t)((int16_t)(int8_t)buf2[5] * 16 +
+                  (buf2[4] >> 4));
 
-    data.dig_P2 = (int16_t)(
-          (uint16_t)block1[8]
-        | ((uint16_t)block1[9] << 8)
-    );
+    if (h4 & 0x0800) {
+        h4 -= 0x1000;
+    }
 
-    data.dig_P3 = (int16_t)(
-          (uint16_t)block1[10]
-        | ((uint16_t)block1[11] << 8)
-    );
+    if (h5 & 0x0800) {
+        h5 -= 0x1000;
+    }
 
-    data.dig_P4 = (int16_t)(
-          (uint16_t)block1[12]
-        | ((uint16_t)block1[13] << 8)
-    );
-
-    data.dig_P5 = (int16_t)(
-          (uint16_t)block1[14]
-        | ((uint16_t)block1[15] << 8)
-    );
-
-    data.dig_P6 = (int16_t)(
-          (uint16_t)block1[16]
-        | ((uint16_t)block1[17] << 8)
-    );
-
-    data.dig_P7 = (int16_t)(
-          (uint16_t)block1[18]
-        | ((uint16_t)block1[19] << 8)
-    );
-
-    data.dig_P8 = (int16_t)(
-          (uint16_t)block1[20]
-        | ((uint16_t)block1[21] << 8)
-    );
-
-    data.dig_P9 = (int16_t)(
-          (uint16_t)block1[22]
-        | ((uint16_t)block1[23] << 8)
-    );
-
-    // --------------------------------------------------------
-    // Коэффициенты влажности
-    // --------------------------------------------------------
-
-    data.dig_H1 = block1[25];
-
-    data.dig_H2 = (int16_t)(
-          (uint16_t)block2[0]
-        | ((uint16_t)block2[1] << 8)
-    );
-
-    data.dig_H3 = block2[2];
-
-    data.dig_H4 = (int16_t)(
-          ((int16_t)(int8_t)block2[3] << 4)
-        | (block2[4] & 0x0F)
-    );
-
-    data.dig_H5 = (int16_t)(
-          ((int16_t)(int8_t)block2[5] << 4)
-        | (block2[4] >> 4)
-    );
-
-    data.dig_H6 = (int8_t)block2[6];
+    data.dig_H4 = h4;
+    data.dig_H5 = h5;
+    data.dig_H6 = (int8_t)buf2[6];
 
     return 0;
 }
 
 
-// ============================================================
-// Расчёт температуры
-// Результат: градусы Цельсия
-// ============================================================
-
+// Компенсация температуры
 double BME280::calculateTemp(uint32_t adc_T)
 {
-    double v1 =
-        (adc_T / 16384.0 - data.dig_T1 / 1024.0)
-        * data.dig_T2;
+    double var1;
+    double var2;
 
-    double v2 =
-        adc_T / 131072.0 - data.dig_T1 / 8192.0;
+    var1 =
+        ((double)adc_T / 16384.0 -
+         (double)data.dig_T1 / 1024.0) *
+        (double)data.dig_T2;
 
-    v2 = v2 * v2 * data.dig_T3;
+    var2 =
+        ((double)adc_T / 131072.0 -
+         (double)data.dig_T1 / 8192.0);
 
-    data.t_fine = (int32_t)(v1 + v2);
+    var2 =
+        var2 * var2 * (double)data.dig_T3;
 
-    return (v1 + v2) / 5120.0;
+    data.t_fine = (int32_t)(var1 + var2);
+
+    return (var1 + var2) / 5120.0;
 }
 
 
-// ============================================================
-// Расчёт влажности
-// Результат: относительная влажность, %
-// -1.0 означает ошибку чтения температуры
-// ============================================================
-
+// Компенсация влажности
 double BME280::calculateHum(uint32_t adc_H)
 {
     uint32_t rawTemp = 0;
 
-    uint8_t result = readTemp(rawTemp, 1, 1);
-
-    if (result != 0) {
+    if (readTemp(rawTemp, 1, 1) != 0) {
         return -1.0;
     }
 
     calculateTemp(rawTemp);
 
-    double h = data.t_fine - 76800.0;
+    double v =
+        (double)data.t_fine - 76800.0;
 
-    h = (adc_H - (
-            data.dig_H4 * 64.0
-            + data.dig_H5 / 16384.0 * h
-        ))
-        * (
-            data.dig_H2 / 65536.0
-            * (
-                1.0
-                + data.dig_H6 / 67108864.0 * h
-                * (
-                    1.0
-                    + data.dig_H3 / 67108864.0 * h
-                )
-            )
-        );
+    v =
+        ((double)adc_H -
+         ((double)data.dig_H4 * 64.0 +
+          (double)data.dig_H5 / 16384.0 * v)) *
+        ((double)data.dig_H2 / 65536.0 *
+         (1.0 +
+          (double)data.dig_H6 / 67108864.0 * v *
+          (1.0 +
+           (double)data.dig_H3 / 67108864.0 * v)));
 
-    h = h * (
-        1.0 - data.dig_H1 * h / 524288.0
-    );
+    v *=
+        1.0 -
+        (double)data.dig_H1 * v / 524288.0;
 
-    if (h > 100.0) {
-        h = 100.0;
+    if (v > 100.0) {
+        v = 100.0;
+    }
+    else if (v < 0.0) {
+        v = 0.0;
     }
 
-    if (h < 0.0) {
-        h = 0.0;
-    }
-
-    return h;
+    return v;
 }
 
 
-// ============================================================
-// Расчёт давления
-// Результат: паскали (Pa)
-// -1.0 означает ошибку чтения температуры
-// ============================================================
-
+// Компенсация давления
 double BME280::calculatePressure(uint32_t adc_P)
 {
     uint32_t rawTemp = 0;
 
-    uint8_t result = readTemp(rawTemp, 1, 1);
-
-    if (result != 0) {
+    if (readTemp(rawTemp, 1, 1) != 0) {
         return -1.0;
     }
 
     calculateTemp(rawTemp);
 
-    double v1 = data.t_fine / 2.0 - 64000.0;
+    double var1 =
+        (double)data.t_fine / 2.0 - 64000.0;
 
-    double v2 =
-        v1 * v1 * data.dig_P6 / 32768.0;
+    double var2 =
+        var1 * var1 *
+        (double)data.dig_P6 / 32768.0;
 
-    v2 = v2 + v1 * data.dig_P5 * 2.0;
+    var2 +=
+        var1 * (double)data.dig_P5 * 2.0;
 
-    v2 = v2 / 4.0 + data.dig_P4 * 65536.0;
+    var2 =
+        var2 / 4.0 +
+        (double)data.dig_P4 * 65536.0;
 
-    v1 = (
-        data.dig_P3 * v1 * v1 / 524288.0
-        + data.dig_P2 * v1
-    ) / 524288.0;
+    var1 =
+        ((double)data.dig_P3 * var1 * var1 / 524288.0 +
+         (double)data.dig_P2 * var1) / 524288.0;
 
-    v1 = (1.0 + v1 / 32768.0) * data.dig_P1;
+    var1 =
+        (1.0 + var1 / 32768.0) *
+        (double)data.dig_P1;
 
-    if (v1 == 0.0) {
+    if (var1 == 0.0) {
         return -1.0;
     }
 
-    double p = 1048576.0 - adc_P;
+    double pressure = 1048576.0 - (double)adc_P;
 
-    p = (p - v2 / 4096.0) * 6250.0 / v1;
+    pressure =
+        (pressure - var2 / 4096.0) *
+        6250.0 / var1;
 
-    v1 = data.dig_P9 * p * p / 2147483648.0;
+    var1 =
+        (double)data.dig_P9 *
+        pressure * pressure / 2147483648.0;
 
-    v2 = p * data.dig_P8 / 32768.0;
+    var2 =
+        pressure *
+        (double)data.dig_P8 / 32768.0;
 
-    p = p + (v1 + v2 + data.dig_P7) / 16.0;
+    pressure +=
+        (var1 + var2 +
+         (double)data.dig_P7) / 16.0;
 
-    return p;
+    return pressure;
+}
+
+
+// =====================================================
+// Реализация интерфейса TempStorage
+// =====================================================
+
+
+// Получить температуру в градусах Цельсия
+uint8_t BME280::readTemperature(double& temperature)
+{
+    uint32_t rawTemperature = 0;
+
+    uint8_t status = readTemp(rawTemperature, 1, 1);
+
+    if (status != 0) {
+        return status;
+    }
+
+    temperature = calculateTemp(rawTemperature);
+
+    return 0;
+}
+
+
+// Получить давление в паскалях
+uint8_t BME280::readPressure(double& pressure)
+{
+    uint32_t rawPressure = 0;
+
+    uint8_t status = readPressure(rawPressure, 1, 1, 1);
+
+    if (status != 0) {
+        return status;
+    }
+
+    pressure = calculatePressure(rawPressure);
+
+    if (pressure < 0) {
+        return 10;
+    }
+
+    return 0;
+}
+
+
+// Получить относительную влажность в процентах
+uint8_t BME280::readHumidity(double& humidity)
+{
+    uint32_t rawHumidity = 0;
+
+    uint8_t status = readHum(rawHumidity, 1, 1, 1);
+
+    if (status != 0) {
+        return status;
+    }
+
+    humidity = calculateHum(rawHumidity);
+
+    if (humidity < 0) {
+        return 10;
+    }
+
+    return 0;
 }

@@ -3,6 +3,7 @@
 
 #include <Arduino.h>
 #include "TWI.h"
+#include "TempStorage.h"
 
 struct bme_calib {
     uint8_t addr = 0;
@@ -31,7 +32,7 @@ struct bme_calib {
     int32_t t_fine = 0;
 };
 
-class BME280 {
+class BME280 : public TempStorage {
 private:
     TWI& bus;
     bme_calib data;
@@ -42,9 +43,15 @@ private:
 public:
     explicit BME280(TWI& twi, uint8_t address = 0x76);
 
-    uint8_t begin();
-    uint8_t reset();
+    // Реализация интерфейса TempStorage
+    uint8_t begin() override;
 
+    uint8_t readTemperature(double& temperature) override;
+    uint8_t readPressure(double& pressure) override;
+    uint8_t readHumidity(double& humidity) override;
+
+    // Методы управления датчиком
+    uint8_t reset();
     char checkMode();
 
     uint8_t setConfig(
@@ -53,6 +60,7 @@ public:
         uint8_t spi3w_en
     );
 
+    // Чтение необработанных значений
     uint8_t readTemp(
         uint32_t& res,
         uint8_t osrs,
@@ -73,6 +81,7 @@ public:
         uint8_t mode
     );
 
+    // Компенсация измерений
     double calculateTemp(uint32_t adc_T);
     double calculateHum(uint32_t adc_H);
     double calculatePressure(uint32_t adc_P);
