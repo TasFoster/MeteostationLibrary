@@ -18,7 +18,7 @@ void MeteoService::display(char type)
         case 't':
             if (storage.readTemperature(value) == 0)
             {
-                String msg = "Temperature: ";
+                String msg = "Temp: ";
                 msg += String(value, 2);
                 msg += " C";
                 output.print(msg);
@@ -28,7 +28,7 @@ void MeteoService::display(char type)
         case 'p':
             if (storage.readPressure(value) == 0)
             {
-                String msg = "Pressure: ";
+                String msg = "Pres: ";
                 msg += String(value, 2);
                 msg += " Pa";
                 output.print(msg);
@@ -38,7 +38,7 @@ void MeteoService::display(char type)
         case 'h':
             if (storage.readHumidity(value) == 0)
             {
-                String msg = "Humidity: ";
+                String msg = "Hum: ";
                 msg += String(value, 2);
                 msg += " %";
                 output.print(msg);

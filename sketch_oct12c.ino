@@ -1,46 +1,36 @@
-#include <Arduino.h>
 #include "headers/TWI.h"
+#include "headers/BMP.h"
+#include "headers/SerialOutput.h"
+#include "headers/MeteoService.h"
+#include "headers/TWILCD_output.h"
 
 TWI twi;
+BME280 sensor(twi, 0x76);
+TWILCD_output lcd_output(0x27, twi);
+
+MeteoService meteo(sensor, lcd_output);
 
 void setup()
 {
     Serial.begin(9600);
+    Serial.println("Program started");
+
     twi.init();
+    Serial.println("TWI initialized");
 
-    Serial.println("I2C Scanner started");
-
-    for (uint8_t addr = 0x01; addr <= 0x7E; addr++)
+    if (sensor.begin() != 0)
     {
-        // START
-        uint8_t status = twi.start();
-
-        if (status != 0x08)
-        {
-            twi.stop();
-            continue;
-        }
-
-        // Отправляем адрес устройства в режиме записи.
-        // Метод write() ожидает адрес уже со сдвигом на 1 бит.
-        status = twi.write(addr << 1);
-
-        if (status == 0x18)
-        {
-            Serial.print("Device found at address: 0x");
-
-            if (addr < 0x10)
-                Serial.print("0");
-
-            Serial.println(addr, HEX);
-        }
-
-        twi.stop();
+        Serial.println("BME280 initialization failed!");
+        while (true) {}
     }
 
-    Serial.println("Scan complete");
+    Serial.println("BME280 initialized!");
 }
 
 void loop()
 {
+    meteo.display('t');
+
+
+    delay(2000);
 }

@@ -1,6 +1,14 @@
 #ifndef TWI_H
 #define TWI_H
 
+#define CHECK_TWI(twiObj, actual, expected, errorCode) \
+    do { \
+        if ((actual) != (expected)) { \
+            (twiObj).stop(); \
+            return (errorCode); \
+        } \
+    } while (0)
+
 #include <Arduino.h>
 
 class TWI {
