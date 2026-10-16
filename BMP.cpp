@@ -13,9 +13,7 @@ uint8_t BME280::begin()
 {
     uint8_t status = reset();
 
-    if (status != 0) {
-        return status;
-    }
+    CHECK_TWI(status, 0, []() {}, status);
 
     status = readCalib();
 
@@ -32,9 +30,7 @@ uint8_t BME280::reset()
 {
     uint8_t status = bus.writeReg(data.addr, 0xE0, 0xB6);
 
-    if (status != 0) {
-        return status;
-    }
+    CHECK_TWI(status, 0, []() {}, status);
 
     unsigned long startTime = millis();
 
@@ -135,25 +131,19 @@ uint8_t BME280::readTemp(
 
     uint8_t status = setConfig(5, 2, 0);
 
-    if (status != 0) {
-        return status;
-    }
+    CHECK_TWI(status, 0, []() {}, status);
 
     // Отключаем измерение влажности
     status = bus.writeReg(data.addr, 0xF2, 0);
 
-    if (status != 0) {
-        return status;
-    }
+    CHECK_TWI(status, 0, []() {}, status);
 
     // CTRL_MEAS: osrs_t [7:5], osrs_p [4:2], mode [1:0]
     uint8_t ctrl_meas = (osrs << 5) | mode;
 
     status = bus.writeReg(data.addr, 0xF4, ctrl_meas);
 
-    if (status != 0) {
-        return status;
-    }
+    CHECK_TWI(status, 0, []() {}, status);
 
     // В forced mode ожидаем завершения измерения
     if (mode != 3) {
@@ -174,9 +164,7 @@ uint8_t BME280::readTemp(
 
     status = bus.readRegs(data.addr, 0xFA, buf, 3);
 
-    if (status != 0) {
-        return status;
-    }
+    CHECK_TWI(status, 0, []() {}, status);
 
     res =
         ((uint32_t)buf[0] << 12) |
@@ -201,24 +189,18 @@ uint8_t BME280::readHum(
 
     uint8_t status = setConfig(5, 2, 0);
 
-    if (status != 0) {
-        return status;
-    }
+    CHECK_TWI(status, 0, []() {}, status);
 
     // CTRL_HUM необходимо записывать перед CTRL_MEAS
     status = bus.writeReg(data.addr, 0xF2, osrs_h);
 
-    if (status != 0) {
-        return status;
-    }
+    CHECK_TWI(status, 0, []() {}, status);
 
     uint8_t ctrl_meas = (osrs_t << 5) | mode;
 
     status = bus.writeReg(data.addr, 0xF4, ctrl_meas);
 
-    if (status != 0) {
-        return status;
-    }
+    CHECK_TWI(status, 0, []() {}, status);
 
     if (mode != 3) {
         unsigned long startTime = millis();
@@ -238,9 +220,7 @@ uint8_t BME280::readHum(
 
     status = bus.readRegs(data.addr, 0xFD, buf, 2);
 
-    if (status != 0) {
-        return status;
-    }
+    CHECK_TWI(status, 0, []() {}, status);
 
     res =
         ((uint32_t)buf[0] << 8) |
@@ -264,16 +244,12 @@ uint8_t BME280::readPressure(
 
     uint8_t status = setConfig(5, 2, 0);
 
-    if (status != 0) {
-        return status;
-    }
+    CHECK_TWI(status, 0, []() {}, status);
 
     // Отключаем измерение влажности
     status = bus.writeReg(data.addr, 0xF2, 0);
 
-    if (status != 0) {
-        return status;
-    }
+    CHECK_TWI(status, 0, []() {}, status);
 
     uint8_t ctrl_meas =
         (osrs_t << 5) |
@@ -282,9 +258,7 @@ uint8_t BME280::readPressure(
 
     status = bus.writeReg(data.addr, 0xF4, ctrl_meas);
 
-    if (status != 0) {
-        return status;
-    }
+    CHECK_TWI(status, 0, []() {}, status);
 
     if (mode != 3) {
         unsigned long startTime = millis();
@@ -304,9 +278,7 @@ uint8_t BME280::readPressure(
 
     status = bus.readRegs(data.addr, 0xF7, buf, 3);
 
-    if (status != 0) {
-        return status;
-    }
+    CHECK_TWI(status, 0, []() {}, status);
 
     res =
         ((uint32_t)buf[0] << 12) |
@@ -325,15 +297,11 @@ uint8_t BME280::readCalib()
 
     uint8_t status = bus.readRegs(data.addr, 0x88, buf1, 26);
 
-    if (status != 0) {
-        return status;
-    }
+    CHECK_TWI(status, 0, []() {}, status);
 
     status = bus.readRegs(data.addr, 0xE1, buf2, 7);
 
-    if (status != 0) {
-        return status;
-    }
+    CHECK_TWI(status, 0, []() {}, status);
 
     // Температура
     data.dig_T1 = (uint16_t)buf1[1] << 8 | buf1[0];
@@ -516,9 +484,7 @@ uint8_t BME280::readTemperature(double& temperature)
 
     uint8_t status = readTemp(rawTemperature, 1, 1);
 
-    if (status != 0) {
-        return status;
-    }
+    CHECK_TWI(status, 0, []() {}, status);
 
     temperature = calculateTemp(rawTemperature);
 
@@ -533,9 +499,7 @@ uint8_t BME280::readPressure(double& pressure)
 
     uint8_t status = readPressure(rawPressure, 1, 1, 1);
 
-    if (status != 0) {
-        return status;
-    }
+    CHECK_TWI(status, 0, []() {}, status);
 
     pressure = calculatePressure(rawPressure);
 
@@ -554,9 +518,7 @@ uint8_t BME280::readHumidity(double& humidity)
 
     uint8_t status = readHum(rawHumidity, 1, 1, 1);
 
-    if (status != 0) {
-        return status;
-    }
+    CHECK_TWI(status, 0, []() {}, status);
 
     humidity = calculateHum(rawHumidity);
 

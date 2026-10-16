@@ -1,12 +1,12 @@
 #ifndef TWI_H
 #define TWI_H
 
-#define CHECK_TWI(twiObj, actual, expected, errorCode) \
-    do { \
-        if ((actual) != (expected)) { \
-            (twiObj).stop(); \
-            return (errorCode); \
-        } \
+#define CHECK_TWI(actual, expected, onError, err_id) \
+    do {                                             \
+        if ((actual) != (expected)) {                \
+            onError();                               \
+            return err_id;                           \
+        }                                            \
     } while (0)
 
 #include <Arduino.h>
