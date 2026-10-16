@@ -18,7 +18,7 @@ void MeteoService::display(char type)
         case 't':
             if (storage.readTemperature(value) == 0)
             {
-                String msg = "Temp: ";
+                String msg = "Temperature: ";
                 msg += String(value, 2);
                 msg += " C";
                 output.print(msg);

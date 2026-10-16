@@ -40,9 +40,19 @@ uint8_t TWILCD_output::init(uint8_t cursorMode)
 
 void TWILCD_output::print(String data)
 {
+    String ref1 = data;
+    String ref2 = "";
+    if (data.length() > 16){
+        ref1 = data.substring(0, 16);
+        ref2 = data.substring(16);
+    }
     send_command(LCD_CLEAR);
     send_command(LCD_HOME);
-    for (char i : data){
+    for (char i : ref1){
+        send_symbol(i);
+    }
+    setCursor(1,0);
+    for (char i : ref2){
         send_symbol(i);
     }
 }
