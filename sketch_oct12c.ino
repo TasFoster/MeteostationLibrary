@@ -16,6 +16,10 @@ MeteoService meteo(sensor, lcd_output);
 volatile bool flag_start = false;
 
 ISR(TIMER3_COMPA_vect){
+    flag_start = true;
+}
+
+void meteoDisplay(){
     meteo.display('h');
 }
 
@@ -32,7 +36,7 @@ void initTimer(){
 
 void setup()
 {
-    
+    initTimer();
     Serial.begin(9600);
     Serial.println("Program started");
 
@@ -46,10 +50,19 @@ void setup()
     }
 
     Serial.println("BME280 initialized!");
-    initTimer();
 }
 
 void loop()
 {
-    
+    bool run;
+
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
+        run = flag_start;
+        flag_start = false;
+    }
+
+
+    if (run){
+        meteoDisplay();
+    }
 }
