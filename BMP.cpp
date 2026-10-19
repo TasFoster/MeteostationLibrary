@@ -199,7 +199,7 @@ uint8_t BME280::readHum(
     uint8_t ctrl_meas = (osrs_t << 5) | mode;
 
     status = bus.writeReg(data.addr, 0xF4, ctrl_meas);
-
+    delay(10);
     CHECK_TWI(status, 0, []() {}, status);
 
     if (mode != 3) {

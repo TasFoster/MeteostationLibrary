@@ -29,7 +29,7 @@ void setup()
 
 void loop()
 {
-    meteo.display('t');
+    meteo.display('h');
 
 
     delay(2000);
