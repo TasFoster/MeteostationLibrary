@@ -1,3 +1,6 @@
+#include <avr/interrupt.h>
+#include <util/atomic.h>
+
 #include "headers/TWI.h"
 #include "headers/BMP.h"
 #include "headers/SerialOutput.h"
@@ -10,8 +13,30 @@ TWILCD_output lcd_output(0x27, twi);
 
 MeteoService meteo(sensor, lcd_output);
 
+volatile bool flag_start = false;
+
+ISR(TIMER3_COMPA_vect){
+    flag_start = true;
+}
+
+void meteoDisplay(){
+    meteo.display('h');
+}
+
+void initTimer(){
+    TCCR3A = 0;
+    TCCR3B = 0;
+    TCNT3 = 0;
+    OCR3A = 62499;
+    TIMSK3 = _BV(OCF3A);
+    TIMSK3 = _BV(OCIE3A);
+    TCCR3B = _BV(WGM32) | _BV(CS32);
+    interrupts();
+}
+
 void setup()
 {
+    initTimer();
     Serial.begin(9600);
     Serial.println("Program started");
 
@@ -29,8 +54,15 @@ void setup()
 
 void loop()
 {
-    meteo.display('h');
+    bool run;
+
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
+        run = flag_start;
+        flag_start = false;
+    }
 
 
-    delay(2000);
+    if (run){
+        meteoDisplay();
+    }
 }
