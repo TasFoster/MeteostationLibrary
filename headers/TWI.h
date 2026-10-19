@@ -13,6 +13,9 @@
 
 class TWI {
 public:
+    static constexpr uint8_t TIMEOUT = 0xFF;
+    static constexpr uint32_t TIMEOUT_MS = 25;
+
     // Инициализация интерфейса TWI
     void init();
 
@@ -31,6 +34,17 @@ public:
     uint8_t writeReg(uint8_t addr, uint8_t reg, uint8_t value);
     uint8_t readRegs(uint8_t addr, uint8_t reg,
                      uint8_t* buf, uint8_t len);
+
+    // Проверять сразу после операции.
+    // START, write и чтение байта сбрасывают предыдущий признак.
+    // STOP сохраняет его.
+    bool timedOut() const { return timeout_; }
+
+private:
+    bool timeout_ = false;
+
+    bool waitForTwint();
+    bool waitForStopClear();
 };
 
 #endif

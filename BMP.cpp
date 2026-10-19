@@ -334,14 +334,6 @@ uint8_t BME280::readCalib()
         (int16_t)((int16_t)(int8_t)buf2[5] * 16 +
                   (buf2[4] >> 4));
 
-    if (h4 & 0x0800) {
-        h4 -= 0x1000;
-    }
-
-    if (h5 & 0x0800) {
-        h5 -= 0x1000;
-    }
-
     data.dig_H4 = h4;
     data.dig_H5 = h5;
     data.dig_H6 = (int8_t)buf2[6];
