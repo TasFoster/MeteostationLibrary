@@ -29,7 +29,7 @@ void initTimer(){
     TCNT3 = 0;
     OCR3A = 62499;
     TIMSK3 = _BV(OCF3A);
-    TIMSK3 = _BV(OCIE3A);
+    TIFR3 = _BV(OCIE3A);
     TCCR3B = _BV(WGM32) | _BV(CS32);
     interrupts();
 }
