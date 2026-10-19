@@ -1,11 +1,11 @@
 #include <avr/interrupt.h>
 #include <util/atomic.h>
 
-#include "headers/TWI.h"
-#include "headers/BMP.h"
-#include "headers/SerialOutput.h"
-#include "headers/MeteoService.h"
-#include "headers/TWILCD_output.h"
+#include "TWI.h"
+#include "BMP.h"
+#include "SerialOutput.h"
+#include "MeteoService.h"
+#include "TWILCD_output.h"
 
 TWI twi;
 BME280 sensor(twi, 0x76);

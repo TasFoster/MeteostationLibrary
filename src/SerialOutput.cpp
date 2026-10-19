@@ -1,4 +1,4 @@
-#include "headers/SerialOutput.h"
+#include "SerialOutput.h"
 
 SerialOutput::SerialOutput(uint32_t bitRate)
 {

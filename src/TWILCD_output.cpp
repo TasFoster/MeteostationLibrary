@@ -1,4 +1,4 @@
-#include "headers/TWILCD_output.h"
+#include "TWILCD_output.h"
 
 TWILCD_output::TWILCD_output(uint8_t addr, TWI& twi)
     : addr(addr), twi(twi)

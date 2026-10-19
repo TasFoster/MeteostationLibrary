@@ -1,4 +1,4 @@
-#include "headers/BMP.h"
+#include "BMP.h"
 
 BME280::BME280(TWI& twi, uint8_t address)
     : bus(twi)

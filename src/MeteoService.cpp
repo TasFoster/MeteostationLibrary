@@ -1,4 +1,4 @@
-#include "headers/MeteoService.h"
+#include "MeteoService.h"
 
 MeteoService::MeteoService(TempStorage& storage, OutputInterface& output)
     : storage(storage), output(output)
