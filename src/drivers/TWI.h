@@ -3,15 +3,6 @@
 // uint16_t millis();
 
 void mydelay(uint16_t ms);
-// Временно используется драйвером LCD; удалить после рефакторинга output.
-#define CHECK_TWI(actual, expected, onError, err_id) \
-    do {                                             \
-        if ((actual) != (expected)) {                \
-            onError();                               \
-            return err_id;                           \
-        }                                            \
-    } while (0)
-
 #include <Arduino.h>
 
 #define TWI_STATUS_MASK 0xF8
