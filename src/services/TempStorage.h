@@ -3,6 +3,10 @@
 
 #include <Arduino.h>
 
+enum TempStorageStatus : uint8_t {
+    TEMP_STORAGE_SUCCESS = 0
+};
+
 class TempStorage {
 public:
     virtual ~TempStorage() = default;

@@ -23,7 +23,7 @@
 // }
 
 // void meteoDisplay(){
-//     meteo.display('h');
+//     meteo.display(MeasurementType::Humidity);
 // }
 
 // void initTimer(){
