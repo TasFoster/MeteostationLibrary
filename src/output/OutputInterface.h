@@ -1,12 +1,10 @@
 #ifndef OUTPUT_INTERFACE_H
 #define OUTPUT_INTERFACE_H
-#include <Arduino.h> 
+#include <Arduino.h>
 
-
-class OutputInterface
-{
+class OutputInterface {
 public:
-    virtual void print(String data) = 0;
+  virtual void print(String data) = 0;
 };
 
 #endif
