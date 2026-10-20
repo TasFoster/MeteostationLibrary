@@ -215,7 +215,7 @@ uint8_t BME280::readHum(
     uint8_t ctrl_meas = (static_cast<uint8_t>(osrs_t) << 5) | static_cast<uint8_t>(mode);
 
     status = bus.writeReg(data.addr, BME280_REG_CTRL_MEAS, ctrl_meas);
-    delay(BME280_MEASUREMENT_START_DELAY_MS);
+    mydelay(BME280_MEASUREMENT_START_mydelay_MS);
     if (status != BME280_SUCCESS) {
         return status;
     }

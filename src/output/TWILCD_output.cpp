@@ -11,7 +11,7 @@ TWILCD_output::~TWILCD_output()
 
 uint8_t TWILCD_output::init(uint8_t cursorMode)
 {
-    delay(50);
+    mydelay(50);
 
     send_nibble(0x03);
     send_nibble(0x03);
@@ -125,7 +125,7 @@ uint8_t TWILCD_output::send_symbol(char s)
     CHECK_TWI(status, 0x28, [&]() { twi.stop(); }, 8);
 
     twi.stop();
-    delay(2);
+    mydelay(2);
 
     return 0;
 }
@@ -164,7 +164,7 @@ uint8_t TWILCD_output::send_command(uint8_t c)
     CHECK_TWI(status, 0x28, [&]() { twi.stop(); }, 8);
 
     twi.stop();
-    delay(2);
+    mydelay(2);
 
     return 0;
 }
@@ -190,5 +190,5 @@ void TWILCD_output::send_nibble(uint8_t nibble)
     CHECK_TWI(status, 0x28, [&]() { twi.stop(); }, );
 
     twi.stop();
-    delay(3);
+    mydelay(3);
 }

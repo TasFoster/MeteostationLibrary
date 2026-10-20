@@ -1,6 +1,9 @@
 #include <Arduino.h>
 #include "TWI.h"
 
+void mydelay(uint16_t ms){
+    delayMicroseconds(ms * 1000);
+}
 void TWI::init()
 {
     TWBR = TWI_BIT_RATE_REGISTER_VALUE;

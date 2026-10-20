@@ -1,6 +1,8 @@
 #ifndef TWI_H
 #define TWI_H
+// uint16_t millis();
 
+void mydelay(uint16_t ms);
 // Временно используется драйвером LCD; удалить после рефакторинга output.
 #define CHECK_TWI(actual, expected, onError, err_id) \
     do {                                             \
