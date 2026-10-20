@@ -114,14 +114,7 @@ struct bme_calib {
 };
 
 class BME280 : public TempStorage {
-private:
-  TWI &bus;
-  bme_calib data;
-
-  uint8_t readCalib();
-  SensorStatus checkStatus(StatusCheck target);
-
-public:
+ public:
   explicit BME280(TWI &twi, uint8_t address = BME280_DEFAULT_ADDRESS);
 
   // Реализация интерфейса TempStorage
@@ -150,6 +143,13 @@ public:
   double calculateTemp(uint32_t adc_T);
   double calculateHum(uint32_t adc_H);
   double calculatePressure(uint32_t adc_P);
+
+ private:
+  uint8_t readCalib();
+  SensorStatus checkStatus(StatusCheck target);
+
+  TWI &bus_;
+  bme_calib data_;
 };
 
 #endif

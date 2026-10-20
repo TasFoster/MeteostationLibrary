@@ -5,8 +5,8 @@
 #include <Arduino.h>
 
 class SerialOutput : public OutputInterface {
-public:
-  SerialOutput(uint32_t bitRate);
+ public:
+  explicit SerialOutput(uint32_t bitRate);
 
   void print(String data) override;
 };

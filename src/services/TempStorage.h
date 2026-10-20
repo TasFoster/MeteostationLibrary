@@ -6,7 +6,7 @@
 enum TempStorageStatus : uint8_t { TEMP_STORAGE_SUCCESS = 0 };
 
 class TempStorage {
-public:
+ public:
   virtual ~TempStorage() = default;
 
   virtual uint8_t begin() = 0;

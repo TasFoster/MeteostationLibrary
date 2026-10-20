@@ -3,7 +3,7 @@
 #include <Arduino.h>
 
 class OutputInterface {
-public:
+ public:
   virtual void print(String data) = 0;
 };
 

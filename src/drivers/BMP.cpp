@@ -1,8 +1,8 @@
 #include "BMP.h"
 
-BME280::BME280(TWI &twi, uint8_t address) : bus(twi) {
-  data = {};
-  data.addr = address;
+BME280::BME280(TWI &twi, uint8_t address) : bus_(twi) {
+  data_ = {};
+  data_.addr = address;
 }
 
 // Инициализация датчика
@@ -25,7 +25,7 @@ uint8_t BME280::begin() {
 // Сброс датчика
 uint8_t BME280::reset() {
   uint8_t status =
-      bus.writeReg(data.addr, BME280_REG_RESET, BME280_RESET_COMMAND);
+      bus_.writeReg(data_.addr, BME280_REG_RESET, BME280_RESET_COMMAND);
 
   if (status != BME280_SUCCESS) {
     return status;
@@ -56,7 +56,7 @@ uint8_t BME280::reset() {
 SensorStatus BME280::checkStatus(StatusCheck target) {
   uint8_t status = 0;
 
-  if (bus.readReg(data.addr, BME280_REG_STATUS, status) != BME280_SUCCESS) {
+  if (bus_.readReg(data_.addr, BME280_REG_STATUS, status) != BME280_SUCCESS) {
     return SensorStatus::Error;
   }
 
@@ -77,7 +77,7 @@ SensorStatus BME280::checkStatus(StatusCheck target) {
 SensorMode BME280::checkMode() {
   uint8_t ctrl_meas = 0;
 
-  if (bus.readReg(data.addr, BME280_REG_CTRL_MEAS, ctrl_meas) !=
+  if (bus_.readReg(data_.addr, BME280_REG_CTRL_MEAS, ctrl_meas) !=
       BME280_SUCCESS) {
     return SensorMode::Unknown;
   }
@@ -106,7 +106,7 @@ uint8_t BME280::setConfig(StandbyTime t_sb, Filter filter, Spi3Wire spi3w_en) {
                    (static_cast<uint8_t>(filter) << 2) |
                    static_cast<uint8_t>(spi3w_en);
 
-  return bus.writeReg(data.addr, BME280_REG_CONFIG, config);
+  return bus_.writeReg(data_.addr, BME280_REG_CONFIG, config);
 }
 
 // Чтение температуры
@@ -124,7 +124,7 @@ uint8_t BME280::readTemp(uint32_t &res, Oversampling osrs, SensorMode mode) {
   }
 
   // Отключаем измерение влажности
-  status = bus.writeReg(data.addr, BME280_REG_CTRL_HUM,
+  status = bus_.writeReg(data_.addr, BME280_REG_CTRL_HUM,
                         static_cast<uint8_t>(Oversampling::Skipped));
 
   if (status != BME280_SUCCESS) {
@@ -135,7 +135,7 @@ uint8_t BME280::readTemp(uint32_t &res, Oversampling osrs, SensorMode mode) {
   uint8_t ctrl_meas =
       (static_cast<uint8_t>(osrs) << 5) | static_cast<uint8_t>(mode);
 
-  status = bus.writeReg(data.addr, BME280_REG_CTRL_MEAS, ctrl_meas);
+  status = bus_.writeReg(data_.addr, BME280_REG_CTRL_MEAS, ctrl_meas);
 
   if (status != BME280_SUCCESS) {
     return status;
@@ -158,15 +158,15 @@ uint8_t BME280::readTemp(uint32_t &res, Oversampling osrs, SensorMode mode) {
 
   uint8_t buf[3];
 
-  status = bus.readRegs(data.addr, BME280_REG_TEMPERATURE, buf, 3);
+  status = bus_.readRegs(data_.addr, BME280_REG_TEMPERATURE, buf, 3);
 
   if (status != BME280_SUCCESS) {
     return status;
   }
 
-  res = ((uint32_t)buf[BME280_DATA_MSB] << 12) |
-        ((uint32_t)buf[BME280_DATA_LSB] << 4) |
-        ((uint32_t)buf[BME280_DATA_XLSB] >> 4);
+  res = (static_cast<uint32_t>(buf[BME280_DATA_MSB]) << 12) |
+        (static_cast<uint32_t>(buf[BME280_DATA_LSB]) << 4) |
+        (static_cast<uint32_t>(buf[BME280_DATA_XLSB]) >> 4);
 
   return BME280_SUCCESS;
 }
@@ -187,7 +187,7 @@ uint8_t BME280::readHum(uint32_t &res, Oversampling osrs_h, Oversampling osrs_t,
   }
 
   // CTRL_HUM необходимо записывать перед CTRL_MEAS
-  status = bus.writeReg(data.addr, BME280_REG_CTRL_HUM,
+  status = bus_.writeReg(data_.addr, BME280_REG_CTRL_HUM,
                         static_cast<uint8_t>(osrs_h));
 
   if (status != BME280_SUCCESS) {
@@ -197,7 +197,7 @@ uint8_t BME280::readHum(uint32_t &res, Oversampling osrs_h, Oversampling osrs_t,
   uint8_t ctrl_meas =
       (static_cast<uint8_t>(osrs_t) << 5) | static_cast<uint8_t>(mode);
 
-  status = bus.writeReg(data.addr, BME280_REG_CTRL_MEAS, ctrl_meas);
+  status = bus_.writeReg(data_.addr, BME280_REG_CTRL_MEAS, ctrl_meas);
   mydelay(BME280_MEASUREMENT_START_mydelay_MS);
   if (status != BME280_SUCCESS) {
     return status;
@@ -219,13 +219,14 @@ uint8_t BME280::readHum(uint32_t &res, Oversampling osrs_h, Oversampling osrs_t,
 
   uint8_t buf[2];
 
-  status = bus.readRegs(data.addr, BME280_REG_HUMIDITY, buf, 2);
+  status = bus_.readRegs(data_.addr, BME280_REG_HUMIDITY, buf, 2);
 
   if (status != BME280_SUCCESS) {
     return status;
   }
 
-  res = ((uint32_t)buf[BME280_DATA_MSB] << 8) | buf[BME280_DATA_LSB];
+  res = (static_cast<uint32_t>(buf[BME280_DATA_MSB]) << 8) |
+      buf[BME280_DATA_LSB];
 
   return BME280_SUCCESS;
 }
@@ -246,7 +247,7 @@ uint8_t BME280::readPressure(uint32_t &res, Oversampling osrs_p,
   }
 
   // Отключаем измерение влажности
-  status = bus.writeReg(data.addr, BME280_REG_CTRL_HUM,
+  status = bus_.writeReg(data_.addr, BME280_REG_CTRL_HUM,
                         static_cast<uint8_t>(Oversampling::Skipped));
 
   if (status != BME280_SUCCESS) {
@@ -257,7 +258,7 @@ uint8_t BME280::readPressure(uint32_t &res, Oversampling osrs_p,
                       (static_cast<uint8_t>(osrs_p) << 2) |
                       static_cast<uint8_t>(mode);
 
-  status = bus.writeReg(data.addr, BME280_REG_CTRL_MEAS, ctrl_meas);
+  status = bus_.writeReg(data_.addr, BME280_REG_CTRL_MEAS, ctrl_meas);
 
   if (status != BME280_SUCCESS) {
     return status;
@@ -279,15 +280,15 @@ uint8_t BME280::readPressure(uint32_t &res, Oversampling osrs_p,
 
   uint8_t buf[3];
 
-  status = bus.readRegs(data.addr, BME280_REG_PRESSURE, buf, 3);
+  status = bus_.readRegs(data_.addr, BME280_REG_PRESSURE, buf, 3);
 
   if (status != BME280_SUCCESS) {
     return status;
   }
 
-  res = ((uint32_t)buf[BME280_DATA_MSB] << 12) |
-        ((uint32_t)buf[BME280_DATA_LSB] << 4) |
-        ((uint32_t)buf[BME280_DATA_XLSB] >> 4);
+  res = (static_cast<uint32_t>(buf[BME280_DATA_MSB]) << 12) |
+        (static_cast<uint32_t>(buf[BME280_DATA_LSB]) << 4) |
+        (static_cast<uint32_t>(buf[BME280_DATA_XLSB]) >> 4);
 
   return BME280_SUCCESS;
 }
@@ -298,48 +299,63 @@ uint8_t BME280::readCalib() {
   uint8_t buf2[7];
 
   uint8_t status =
-      bus.readRegs(data.addr, BME280_REG_CALIBRATION_MAIN, buf1, 26);
+      bus_.readRegs(data_.addr, BME280_REG_CALIBRATION_MAIN, buf1, 26);
 
   if (status != BME280_SUCCESS) {
     return status;
   }
 
-  status = bus.readRegs(data.addr, BME280_REG_CALIBRATION_HUMIDITY, buf2, 7);
+  status = bus_.readRegs(data_.addr, BME280_REG_CALIBRATION_HUMIDITY, buf2, 7);
 
   if (status != BME280_SUCCESS) {
     return status;
   }
 
   // Температура
-  data.dig_T1 = (uint16_t)buf1[1] << 8 | buf1[0];
-  data.dig_T2 = (int16_t)((uint16_t)buf1[3] << 8 | buf1[2]);
-  data.dig_T3 = (int16_t)((uint16_t)buf1[5] << 8 | buf1[4]);
+  data_.dig_T1 = static_cast<uint16_t>(buf1[1]) << 8 | buf1[0];
+  data_.dig_T2 = static_cast<int16_t>(static_cast<uint16_t>(buf1[3]) << 8 |
+      buf1[2]);
+  data_.dig_T3 = static_cast<int16_t>(static_cast<uint16_t>(buf1[5]) << 8 |
+      buf1[4]);
 
   // Давление
-  data.dig_P1 = (uint16_t)buf1[7] << 8 | buf1[6];
-  data.dig_P2 = (int16_t)((uint16_t)buf1[9] << 8 | buf1[8]);
-  data.dig_P3 = (int16_t)((uint16_t)buf1[11] << 8 | buf1[10]);
-  data.dig_P4 = (int16_t)((uint16_t)buf1[13] << 8 | buf1[12]);
-  data.dig_P5 = (int16_t)((uint16_t)buf1[15] << 8 | buf1[14]);
-  data.dig_P6 = (int16_t)((uint16_t)buf1[17] << 8 | buf1[16]);
-  data.dig_P7 = (int16_t)((uint16_t)buf1[19] << 8 | buf1[18]);
-  data.dig_P8 = (int16_t)((uint16_t)buf1[21] << 8 | buf1[20]);
-  data.dig_P9 = (int16_t)((uint16_t)buf1[23] << 8 | buf1[22]);
+  data_.dig_P1 = static_cast<uint16_t>(buf1[7]) << 8 | buf1[6];
+  data_.dig_P2 = static_cast<int16_t>(static_cast<uint16_t>(buf1[9]) << 8 |
+      buf1[8]);
+  data_.dig_P3 = static_cast<int16_t>(static_cast<uint16_t>(buf1[11]) << 8 |
+      buf1[10]);
+  data_.dig_P4 = static_cast<int16_t>(static_cast<uint16_t>(buf1[13]) << 8 |
+      buf1[12]);
+  data_.dig_P5 = static_cast<int16_t>(static_cast<uint16_t>(buf1[15]) << 8 |
+      buf1[14]);
+  data_.dig_P6 = static_cast<int16_t>(static_cast<uint16_t>(buf1[17]) << 8 |
+      buf1[16]);
+  data_.dig_P7 = static_cast<int16_t>(static_cast<uint16_t>(buf1[19]) << 8 |
+      buf1[18]);
+  data_.dig_P8 = static_cast<int16_t>(static_cast<uint16_t>(buf1[21]) << 8 |
+      buf1[20]);
+  data_.dig_P9 = static_cast<int16_t>(static_cast<uint16_t>(buf1[23]) << 8 |
+      buf1[22]);
 
   // Влажность
-  data.dig_H1 = buf1[25];
+  data_.dig_H1 = buf1[25];
 
-  data.dig_H2 = (int16_t)((uint16_t)buf2[1] << 8 | buf2[0]);
-  data.dig_H3 = buf2[2];
+  data_.dig_H2 = static_cast<int16_t>(static_cast<uint16_t>(buf2[1]) << 8 |
+      buf2[0]);
+  data_.dig_H3 = buf2[2];
 
   // dig_H4 и dig_H5 — 12-битные знаковые значения
-  int16_t h4 = (int16_t)((int16_t)(int8_t)buf2[3] * 16 + (buf2[4] & 0x0F));
+  int16_t h4 =
+      static_cast<int16_t>(static_cast<int16_t>(static_cast<int8_t>(buf2[3])) *
+      16 + (buf2[4] & 0x0F));
 
-  int16_t h5 = (int16_t)((int16_t)(int8_t)buf2[5] * 16 + (buf2[4] >> 4));
+  int16_t h5 =
+      static_cast<int16_t>(static_cast<int16_t>(static_cast<int8_t>(buf2[5])) *
+      16 + (buf2[4] >> 4));
 
-  data.dig_H4 = h4;
-  data.dig_H5 = h5;
-  data.dig_H6 = (int8_t)buf2[6];
+  data_.dig_H4 = h4;
+  data_.dig_H5 = h5;
+  data_.dig_H6 = static_cast<int8_t>(buf2[6]);
 
   return BME280_SUCCESS;
 }
@@ -349,14 +365,16 @@ double BME280::calculateTemp(uint32_t adc_T) {
   double var1;
   double var2;
 
-  var1 = ((double)adc_T / 16384.0 - (double)data.dig_T1 / 1024.0) *
-         (double)data.dig_T2;
+  var1 = (static_cast<double>(adc_T) / 16384.0 -
+      static_cast<double>(data_.dig_T1) / 1024.0) *
+         static_cast<double>(data_.dig_T2);
 
-  var2 = ((double)adc_T / 131072.0 - (double)data.dig_T1 / 8192.0);
+  var2 = (static_cast<double>(adc_T) / 131072.0 -
+      static_cast<double>(data_.dig_T1) / 8192.0);
 
-  var2 = var2 * var2 * (double)data.dig_T3;
+  var2 = var2 * var2 * static_cast<double>(data_.dig_T3);
 
-  data.t_fine = (int32_t)(var1 + var2);
+  data_.t_fine = static_cast<int32_t>(var1 + var2);
 
   return (var1 + var2) / 5120.0;
 }
@@ -372,15 +390,16 @@ double BME280::calculateHum(uint32_t adc_H) {
 
   calculateTemp(rawTemp);
 
-  double v = (double)data.t_fine - 76800.0;
+  double v = static_cast<double>(data_.t_fine) - 76800.0;
 
-  v = ((double)adc_H -
-       ((double)data.dig_H4 * 64.0 + (double)data.dig_H5 / 16384.0 * v)) *
-      ((double)data.dig_H2 / 65536.0 *
-       (1.0 + (double)data.dig_H6 / 67108864.0 * v *
-                  (1.0 + (double)data.dig_H3 / 67108864.0 * v)));
+  v = (static_cast<double>(adc_H) -
+       (static_cast<double>(data_.dig_H4) * 64.0 +
+           static_cast<double>(data_.dig_H5) / 16384.0 * v)) *
+      (static_cast<double>(data_.dig_H2) / 65536.0 *
+       (1.0 + static_cast<double>(data_.dig_H6) / 67108864.0 * v *
+                  (1.0 + static_cast<double>(data_.dig_H3) / 67108864.0 * v)));
 
-  v *= 1.0 - (double)data.dig_H1 * v / 524288.0;
+  v *= 1.0 - static_cast<double>(data_.dig_H1) * v / 524288.0;
 
   if (v > 100.0) {
     v = 100.0;
@@ -402,33 +421,33 @@ double BME280::calculatePressure(uint32_t adc_P) {
 
   calculateTemp(rawTemp);
 
-  double var1 = (double)data.t_fine / 2.0 - 64000.0;
+  double var1 = static_cast<double>(data_.t_fine) / 2.0 - 64000.0;
 
-  double var2 = var1 * var1 * (double)data.dig_P6 / 32768.0;
+  double var2 = var1 * var1 * static_cast<double>(data_.dig_P6) / 32768.0;
 
-  var2 += var1 * (double)data.dig_P5 * 2.0;
+  var2 += var1 * static_cast<double>(data_.dig_P5) * 2.0;
 
-  var2 = var2 / 4.0 + (double)data.dig_P4 * 65536.0;
+  var2 = var2 / 4.0 + static_cast<double>(data_.dig_P4) * 65536.0;
 
-  var1 = ((double)data.dig_P3 * var1 * var1 / 524288.0 +
-          (double)data.dig_P2 * var1) /
+  var1 = (static_cast<double>(data_.dig_P3) * var1 * var1 / 524288.0 +
+          static_cast<double>(data_.dig_P2) * var1) /
          524288.0;
 
-  var1 = (1.0 + var1 / 32768.0) * (double)data.dig_P1;
+  var1 = (1.0 + var1 / 32768.0) * static_cast<double>(data_.dig_P1);
 
   if (var1 == 0.0) {
     return -1.0;
   }
 
-  double pressure = 1048576.0 - (double)adc_P;
+  double pressure = 1048576.0 - static_cast<double>(adc_P);
 
   pressure = (pressure - var2 / 4096.0) * 6250.0 / var1;
 
-  var1 = (double)data.dig_P9 * pressure * pressure / 2147483648.0;
+  var1 = static_cast<double>(data_.dig_P9) * pressure * pressure / 2147483648.0;
 
-  var2 = pressure * (double)data.dig_P8 / 32768.0;
+  var2 = pressure * static_cast<double>(data_.dig_P8) / 32768.0;
 
-  pressure += (var1 + var2 + (double)data.dig_P7) / 16.0;
+  pressure += (var1 + var2 + static_cast<double>(data_.dig_P7)) / 16.0;
 
   return pressure;
 }

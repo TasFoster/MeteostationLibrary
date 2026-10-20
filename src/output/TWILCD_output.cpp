@@ -1,6 +1,6 @@
 #include "TWILCD_output.h"
 
-TWILCD_output::TWILCD_output(uint8_t addr, TWI &twi) : addr(addr), twi(twi) {}
+TWILCD_output::TWILCD_output(uint8_t addr, TWI &twi) : addr_(addr), twi_(twi) {}
 
 TWILCD_output::~TWILCD_output() {}
 
@@ -69,8 +69,8 @@ uint8_t TWILCD_output::setCursor(uint8_t row, uint8_t column) {
   if (row >= LCD_ROWS || column >= LCD_COLUMNS)
     return LCD_CURSOR_INVALID_POSITION;
 
-  cur_row = row;
-  cur_column = column;
+  cur_row_ = row;
+  cur_column_ = column;
 
   uint8_t address;
 
@@ -89,57 +89,57 @@ uint8_t TWILCD_output::send_symbol(char s) {
   uint8_t b2 = ((s & LCD_LOW_NIBBLE_MASK) << LCD_NIBBLE_SHIFT) | LCD_BACKLIGHT |
                LCD_REGISTER_SELECT;
 
-  status = twi.start();
+  status = twi_.start();
   if (status != TWI_START_TRANSMITTED) {
-    twi.stop();
+    twi_.stop();
     return LCD_START_ERROR;
   }
 
-  status = twi.write(addr << TWI_ADDRESS_SHIFT);
+  status = twi_.write(addr_ << TWI_ADDRESS_SHIFT);
   if (status != TWI_ADDRESS_WRITE_ACK) {
-    twi.stop();
+    twi_.stop();
     return LCD_ADDRESS_ERROR;
   }
 
   // Старшая половина
-  status = twi.write(b1);
+  status = twi_.write(b1);
   if (status != TWI_DATA_WRITE_ACK) {
-    twi.stop();
+    twi_.stop();
     return LCD_HIGH_DATA_ERROR;
   }
 
-  status = twi.write(b1 | LCD_ENABLE);
+  status = twi_.write(b1 | LCD_ENABLE);
   if (status != TWI_DATA_WRITE_ACK) {
-    twi.stop();
+    twi_.stop();
     return LCD_HIGH_ENABLE_ERROR;
   }
 
-  status = twi.write(b1);
+  status = twi_.write(b1);
   if (status != TWI_DATA_WRITE_ACK) {
-    twi.stop();
+    twi_.stop();
     return LCD_HIGH_LATCH_ERROR;
   }
 
   // Младшая половина
-  status = twi.write(b2);
+  status = twi_.write(b2);
   if (status != TWI_DATA_WRITE_ACK) {
-    twi.stop();
+    twi_.stop();
     return LCD_LOW_DATA_ERROR;
   }
 
-  status = twi.write(b2 | LCD_ENABLE);
+  status = twi_.write(b2 | LCD_ENABLE);
   if (status != TWI_DATA_WRITE_ACK) {
-    twi.stop();
+    twi_.stop();
     return LCD_LOW_ENABLE_ERROR;
   }
 
-  status = twi.write(b2);
+  status = twi_.write(b2);
   if (status != TWI_DATA_WRITE_ACK) {
-    twi.stop();
+    twi_.stop();
     return LCD_LOW_LATCH_ERROR;
   }
 
-  twi.stop();
+  twi_.stop();
   mydelay(LCD_COMMAND_DELAY_MS);
 
   return LCD_SUCCESS;
@@ -151,57 +151,57 @@ uint8_t TWILCD_output::send_command(uint8_t c) {
   uint8_t b1 = (c & LCD_HIGH_NIBBLE_MASK) | LCD_BACKLIGHT;
   uint8_t b2 = ((c & LCD_LOW_NIBBLE_MASK) << LCD_NIBBLE_SHIFT) | LCD_BACKLIGHT;
 
-  status = twi.start();
+  status = twi_.start();
   if (status != TWI_START_TRANSMITTED) {
-    twi.stop();
+    twi_.stop();
     return LCD_START_ERROR;
   }
 
-  status = twi.write(addr << TWI_ADDRESS_SHIFT);
+  status = twi_.write(addr_ << TWI_ADDRESS_SHIFT);
   if (status != TWI_ADDRESS_WRITE_ACK) {
-    twi.stop();
+    twi_.stop();
     return LCD_ADDRESS_ERROR;
   }
 
   // Старшая половина
-  status = twi.write(b1);
+  status = twi_.write(b1);
   if (status != TWI_DATA_WRITE_ACK) {
-    twi.stop();
+    twi_.stop();
     return LCD_HIGH_DATA_ERROR;
   }
 
-  status = twi.write(b1 | LCD_ENABLE);
+  status = twi_.write(b1 | LCD_ENABLE);
   if (status != TWI_DATA_WRITE_ACK) {
-    twi.stop();
+    twi_.stop();
     return LCD_HIGH_ENABLE_ERROR;
   }
 
-  status = twi.write(b1);
+  status = twi_.write(b1);
   if (status != TWI_DATA_WRITE_ACK) {
-    twi.stop();
+    twi_.stop();
     return LCD_HIGH_LATCH_ERROR;
   }
 
   // Младшая половина
-  status = twi.write(b2);
+  status = twi_.write(b2);
   if (status != TWI_DATA_WRITE_ACK) {
-    twi.stop();
+    twi_.stop();
     return LCD_LOW_DATA_ERROR;
   }
 
-  status = twi.write(b2 | LCD_ENABLE);
+  status = twi_.write(b2 | LCD_ENABLE);
   if (status != TWI_DATA_WRITE_ACK) {
-    twi.stop();
+    twi_.stop();
     return LCD_LOW_ENABLE_ERROR;
   }
 
-  status = twi.write(b2);
+  status = twi_.write(b2);
   if (status != TWI_DATA_WRITE_ACK) {
-    twi.stop();
+    twi_.stop();
     return LCD_LOW_LATCH_ERROR;
   }
 
-  twi.stop();
+  twi_.stop();
   mydelay(LCD_COMMAND_DELAY_MS);
 
   return LCD_SUCCESS;
@@ -212,36 +212,36 @@ void TWILCD_output::send_nibble(uint8_t nibble) {
       ((nibble & LCD_LOW_NIBBLE_MASK) << LCD_NIBBLE_SHIFT) | LCD_BACKLIGHT;
   uint8_t status;
 
-  status = twi.start();
+  status = twi_.start();
   if (status != TWI_START_TRANSMITTED) {
-    twi.stop();
+    twi_.stop();
     return;
   }
 
-  status = twi.write(addr << TWI_ADDRESS_SHIFT);
+  status = twi_.write(addr_ << TWI_ADDRESS_SHIFT);
   if (status != TWI_ADDRESS_WRITE_ACK) {
-    twi.stop();
+    twi_.stop();
     return;
   }
 
-  status = twi.write(data);
+  status = twi_.write(data);
   if (status != TWI_DATA_WRITE_ACK) {
-    twi.stop();
+    twi_.stop();
     return;
   }
 
-  status = twi.write(data | LCD_ENABLE);
+  status = twi_.write(data | LCD_ENABLE);
   if (status != TWI_DATA_WRITE_ACK) {
-    twi.stop();
+    twi_.stop();
     return;
   }
 
-  status = twi.write(data);
+  status = twi_.write(data);
   if (status != TWI_DATA_WRITE_ACK) {
-    twi.stop();
+    twi_.stop();
     return;
   }
 
-  twi.stop();
+  twi_.stop();
   mydelay(LCD_INIT_NIBBLE_DELAY_MS);
 }

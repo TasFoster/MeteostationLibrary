@@ -55,27 +55,27 @@ enum LcdRow : uint8_t { LCD_FIRST_ROW = 0, LCD_SECOND_ROW = 1 };
 #define LCD_INIT_NIBBLE_DELAY_MS 3
 
 class TWILCD_output : public OutputInterface {
-private:
-  uint8_t addr;
-  TWI &twi;
-
-  uint8_t zero = LCD_BACKLIGHT;
-  uint8_t one = LCD_ENABLE | LCD_BACKLIGHT;
-
-  uint8_t cur_row = LCD_FIRST_ROW;
-  uint8_t cur_column = 0;
-
-  uint8_t send_symbol(char s);
-  uint8_t send_command(uint8_t c);
-  void send_nibble(uint8_t nibble);
-
-public:
+ public:
   TWILCD_output(uint8_t addr, TWI &twi);
   ~TWILCD_output();
   uint8_t init(uint8_t cursorMode);
   void print(String data) override;
   uint8_t clear();
   uint8_t setCursor(uint8_t row, uint8_t column);
+
+ private:
+  uint8_t send_symbol(char s);
+  uint8_t send_command(uint8_t c);
+  void send_nibble(uint8_t nibble);
+
+  uint8_t addr_;
+  TWI &twi_;
+
+  uint8_t zero_ = LCD_BACKLIGHT;
+  uint8_t one_ = LCD_ENABLE | LCD_BACKLIGHT;
+
+  uint8_t cur_row_ = LCD_FIRST_ROW;
+  uint8_t cur_column_ = 0;
 };
 
 #endif

@@ -14,14 +14,14 @@ enum class MeasurementType : char {
 #define METEO_DISPLAY_DECIMAL_PLACES 2
 
 class MeteoService {
-private:
-  TempStorage &storage;
-  OutputInterface &output;
-
-public:
+ public:
   MeteoService(TempStorage &storage, OutputInterface &output);
   ~MeteoService();
   void display(MeasurementType type);
+
+ private:
+  TempStorage &storage_;
+  OutputInterface &output_;
 };
 
 #endif

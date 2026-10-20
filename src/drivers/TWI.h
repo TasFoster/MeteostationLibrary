@@ -1,4 +1,5 @@
 #ifndef TWI_H
+#define TWI_H
 
 #include <Arduino.h>
 
@@ -38,7 +39,7 @@ enum TwiWriteError : uint8_t {
 };
 
 class TWI {
-public:
+ public:
   static constexpr uint8_t TIMEOUT = 0xFF;
   static constexpr uint32_t TIMEOUT_MS = 25;
 
@@ -65,11 +66,11 @@ public:
   // STOP сохраняет его.
   bool timedOut() const { return timeout_; }
 
-private:
-  bool timeout_ = false;
-
+ private:
   bool waitForTwint();
   bool waitForStopClear();
+
+  bool timeout_ = false;
 };
 
 #endif
