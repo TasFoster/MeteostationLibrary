@@ -320,55 +320,55 @@ uint8_t BME280::readPressure(
 // Чтение калибровочных коэффициентов
 uint8_t BME280::readCalib()
 {
-    uint8_t buf1[BME280_CALIBRATION_MAIN_BYTES];
-    uint8_t buf2[BME280_CALIBRATION_HUMIDITY_BYTES];
+    uint8_t buf1[26];
+    uint8_t buf2[7];
 
-    uint8_t status = bus.readRegs(data.addr, BME280_REG_CALIBRATION_MAIN, buf1, BME280_CALIBRATION_MAIN_BYTES);
+    uint8_t status = bus.readRegs(data.addr, BME280_REG_CALIBRATION_MAIN, buf1, 26);
 
     if (status != BME280_SUCCESS) {
         return status;
     }
 
-    status = bus.readRegs(data.addr, BME280_REG_CALIBRATION_HUMIDITY, buf2, BME280_CALIBRATION_HUMIDITY_BYTES);
+    status = bus.readRegs(data.addr, BME280_REG_CALIBRATION_HUMIDITY, buf2, 7);
 
     if (status != BME280_SUCCESS) {
         return status;
     }
 
     // Температура
-    data.dig_T1 = (uint16_t)buf1[BME280_CAL_T1_MSB] << BME280_BYTE_SHIFT | buf1[BME280_CAL_T1_LSB];
-    data.dig_T2 = (int16_t)((uint16_t)buf1[BME280_CAL_T2_MSB] << BME280_BYTE_SHIFT | buf1[BME280_CAL_T2_LSB]);
-    data.dig_T3 = (int16_t)((uint16_t)buf1[BME280_CAL_T3_MSB] << BME280_BYTE_SHIFT | buf1[BME280_CAL_T3_LSB]);
+    data.dig_T1 = (uint16_t)buf1[1] << 8 | buf1[0];
+    data.dig_T2 = (int16_t)((uint16_t)buf1[3] << 8 | buf1[2]);
+    data.dig_T3 = (int16_t)((uint16_t)buf1[5] << 8 | buf1[4]);
 
     // Давление
-    data.dig_P1 = (uint16_t)buf1[BME280_CAL_P1_MSB] << BME280_BYTE_SHIFT | buf1[BME280_CAL_P1_LSB];
-    data.dig_P2 = (int16_t)((uint16_t)buf1[BME280_CAL_P2_MSB] << BME280_BYTE_SHIFT | buf1[BME280_CAL_P2_LSB]);
-    data.dig_P3 = (int16_t)((uint16_t)buf1[BME280_CAL_P3_MSB] << BME280_BYTE_SHIFT | buf1[BME280_CAL_P3_LSB]);
-    data.dig_P4 = (int16_t)((uint16_t)buf1[BME280_CAL_P4_MSB] << BME280_BYTE_SHIFT | buf1[BME280_CAL_P4_LSB]);
-    data.dig_P5 = (int16_t)((uint16_t)buf1[BME280_CAL_P5_MSB] << BME280_BYTE_SHIFT | buf1[BME280_CAL_P5_LSB]);
-    data.dig_P6 = (int16_t)((uint16_t)buf1[BME280_CAL_P6_MSB] << BME280_BYTE_SHIFT | buf1[BME280_CAL_P6_LSB]);
-    data.dig_P7 = (int16_t)((uint16_t)buf1[BME280_CAL_P7_MSB] << BME280_BYTE_SHIFT | buf1[BME280_CAL_P7_LSB]);
-    data.dig_P8 = (int16_t)((uint16_t)buf1[BME280_CAL_P8_MSB] << BME280_BYTE_SHIFT | buf1[BME280_CAL_P8_LSB]);
-    data.dig_P9 = (int16_t)((uint16_t)buf1[BME280_CAL_P9_MSB] << BME280_BYTE_SHIFT | buf1[BME280_CAL_P9_LSB]);
+    data.dig_P1 = (uint16_t)buf1[7] << 8 | buf1[6];
+    data.dig_P2 = (int16_t)((uint16_t)buf1[9] << 8 | buf1[8]);
+    data.dig_P3 = (int16_t)((uint16_t)buf1[11] << 8 | buf1[10]);
+    data.dig_P4 = (int16_t)((uint16_t)buf1[13] << 8 | buf1[12]);
+    data.dig_P5 = (int16_t)((uint16_t)buf1[15] << 8 | buf1[14]);
+    data.dig_P6 = (int16_t)((uint16_t)buf1[17] << 8 | buf1[16]);
+    data.dig_P7 = (int16_t)((uint16_t)buf1[19] << 8 | buf1[18]);
+    data.dig_P8 = (int16_t)((uint16_t)buf1[21] << 8 | buf1[20]);
+    data.dig_P9 = (int16_t)((uint16_t)buf1[23] << 8 | buf1[22]);
 
     // Влажность
-    data.dig_H1 = buf1[BME280_CAL_H1];
+    data.dig_H1 = buf1[25];
 
-    data.dig_H2 = (int16_t)((uint16_t)buf2[BME280_CAL_H2_MSB] << BME280_BYTE_SHIFT | buf2[BME280_CAL_H2_LSB]);
-    data.dig_H3 = buf2[BME280_CAL_H3];
+    data.dig_H2 = (int16_t)((uint16_t)buf2[1] << 8 | buf2[0]);
+    data.dig_H3 = buf2[2];
 
     // dig_H4 и dig_H5 — 12-битные знаковые значения
     int16_t h4 =
-        (int16_t)((int16_t)(int8_t)buf2[BME280_CAL_H4_MSB] * BME280_NIBBLE_MULTIPLIER +
-                  (buf2[BME280_CAL_H4_H5_SHARED] & BME280_NIBBLE_MASK));
+        (int16_t)((int16_t)(int8_t)buf2[3] * 16 +
+                  (buf2[4] & 0x0F));
 
     int16_t h5 =
-        (int16_t)((int16_t)(int8_t)buf2[BME280_CAL_H5_MSB] * BME280_NIBBLE_MULTIPLIER +
-                  (buf2[BME280_CAL_H4_H5_SHARED] >> BME280_NIBBLE_SHIFT));
+        (int16_t)((int16_t)(int8_t)buf2[5] * 16 +
+                  (buf2[4] >> 4));
 
     data.dig_H4 = h4;
     data.dig_H5 = h5;
-    data.dig_H6 = (int8_t)buf2[BME280_CAL_H6];
+    data.dig_H6 = (int8_t)buf2[6];
 
     return BME280_SUCCESS;
 }
@@ -381,20 +381,20 @@ double BME280::calculateTemp(uint32_t adc_T)
     double var2;
 
     var1 =
-        ((double)adc_T / BME280_TEMP_ADC_LINEAR_DIVISOR -
-         (double)data.dig_T1 / BME280_TEMP_T1_LINEAR_DIVISOR) *
+        ((double)adc_T / 16384.0 -
+         (double)data.dig_T1 / 1024.0) *
         (double)data.dig_T2;
 
     var2 =
-        ((double)adc_T / BME280_TEMP_ADC_QUADRATIC_DIVISOR -
-         (double)data.dig_T1 / BME280_TEMP_T1_QUADRATIC_DIVISOR);
+        ((double)adc_T / 131072.0 -
+         (double)data.dig_T1 / 8192.0);
 
     var2 =
         var2 * var2 * (double)data.dig_T3;
 
     data.t_fine = (int32_t)(var1 + var2);
 
-    return (var1 + var2) / BME280_TEMP_CELSIUS_DIVISOR;
+    return (var1 + var2) / 5120.0;
 }
 
 
@@ -404,33 +404,33 @@ double BME280::calculateHum(uint32_t adc_H)
     uint32_t rawTemp = 0;
 
     if (readTemp(rawTemp, Oversampling::X1, SensorMode::Forced) != BME280_SUCCESS) {
-        return BME280_CALCULATION_ERROR;
+        return -1.0;
     }
 
     calculateTemp(rawTemp);
 
     double v =
-        (double)data.t_fine - BME280_HUM_TFINE_OFFSET;
+        (double)data.t_fine - 76800.0;
 
     v =
         ((double)adc_H -
-         ((double)data.dig_H4 * BME280_HUM_H4_MULTIPLIER +
-          (double)data.dig_H5 / BME280_HUM_H5_DIVISOR * v)) *
-        ((double)data.dig_H2 / BME280_HUM_H2_DIVISOR *
+         ((double)data.dig_H4 * 64.0 +
+          (double)data.dig_H5 / 16384.0 * v)) *
+        ((double)data.dig_H2 / 65536.0 *
          (1.0 +
-          (double)data.dig_H6 / BME280_HUM_NONLINEAR_DIVISOR * v *
+          (double)data.dig_H6 / 67108864.0 * v *
           (1.0 +
-           (double)data.dig_H3 / BME280_HUM_NONLINEAR_DIVISOR * v)));
+           (double)data.dig_H3 / 67108864.0 * v)));
 
     v *=
         1.0 -
-        (double)data.dig_H1 * v / BME280_HUM_H1_DIVISOR;
+        (double)data.dig_H1 * v / 524288.0;
 
-    if (v > BME280_HUMIDITY_MAX) {
-        v = BME280_HUMIDITY_MAX;
+    if (v > 100.0) {
+        v = 100.0;
     }
-    else if (v < BME280_HUMIDITY_MIN) {
-        v = BME280_HUMIDITY_MIN;
+    else if (v < 0.0) {
+        v = 0.0;
     }
 
     return v;
@@ -443,54 +443,54 @@ double BME280::calculatePressure(uint32_t adc_P)
     uint32_t rawTemp = 0;
 
     if (readTemp(rawTemp, Oversampling::X1, SensorMode::Forced) != BME280_SUCCESS) {
-        return BME280_CALCULATION_ERROR;
+        return -1.0;
     }
 
     calculateTemp(rawTemp);
 
     double var1 =
-        (double)data.t_fine / BME280_PRESS_TFINE_DIVISOR - BME280_PRESS_TFINE_OFFSET;
+        (double)data.t_fine / 2.0 - 64000.0;
 
     double var2 =
         var1 * var1 *
-        (double)data.dig_P6 / BME280_PRESS_COEFFICIENT_DIVISOR;
+        (double)data.dig_P6 / 32768.0;
 
     var2 +=
-        var1 * (double)data.dig_P5 * BME280_PRESS_P5_MULTIPLIER;
+        var1 * (double)data.dig_P5 * 2.0;
 
     var2 =
-        var2 / BME280_PRESS_VAR2_DIVISOR +
-        (double)data.dig_P4 * BME280_PRESS_P4_MULTIPLIER;
+        var2 / 4.0 +
+        (double)data.dig_P4 * 65536.0;
 
     var1 =
-        ((double)data.dig_P3 * var1 * var1 / BME280_PRESS_VAR1_DIVISOR +
-         (double)data.dig_P2 * var1) / BME280_PRESS_VAR1_DIVISOR;
+        ((double)data.dig_P3 * var1 * var1 / 524288.0 +
+         (double)data.dig_P2 * var1) / 524288.0;
 
     var1 =
-        (1.0 + var1 / BME280_PRESS_COEFFICIENT_DIVISOR) *
+        (1.0 + var1 / 32768.0) *
         (double)data.dig_P1;
 
     if (var1 == 0.0) {
-        return BME280_CALCULATION_ERROR;
+        return -1.0;
     }
 
-    double pressure = BME280_PRESS_ADC_OFFSET - (double)adc_P;
+    double pressure = 1048576.0 - (double)adc_P;
 
     pressure =
-        (pressure - var2 / BME280_PRESS_VAR2_PRESSURE_DIVISOR) *
-        BME280_PRESS_PRESSURE_MULTIPLIER / var1;
+        (pressure - var2 / 4096.0) *
+        6250.0 / var1;
 
     var1 =
         (double)data.dig_P9 *
-        pressure * pressure / BME280_PRESS_P9_DIVISOR;
+        pressure * pressure / 2147483648.0;
 
     var2 =
         pressure *
-        (double)data.dig_P8 / BME280_PRESS_COEFFICIENT_DIVISOR;
+        (double)data.dig_P8 / 32768.0;
 
     pressure +=
         (var1 + var2 +
-         (double)data.dig_P7) / BME280_PRESS_FINAL_DIVISOR;
+         (double)data.dig_P7) / 16.0;
 
     return pressure;
 }
