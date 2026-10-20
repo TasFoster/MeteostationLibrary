@@ -15,7 +15,7 @@
 
 #include "OutputInterface.h"
 #include <Arduino.h>
-#include "TWI.h"
+#include "../drivers/TWI.h"
 
 class TWILCD_output : public OutputInterface
 {

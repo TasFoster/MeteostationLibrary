@@ -3,7 +3,7 @@
 
 #include <Arduino.h>
 #include "TempStorage.h"
-#include "OutputInterface.h"
+#include "../output/OutputInterface.h"
 
 class MeteoService
 {
