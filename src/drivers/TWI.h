@@ -1,6 +1,7 @@
 #ifndef TWI_H
 #define TWI_H
 
+// Временно используется драйвером LCD; удалить после рефакторинга output.
 #define CHECK_TWI(actual, expected, onError, err_id) \
     do {                                             \
         if ((actual) != (expected)) {                \
@@ -10,6 +11,51 @@
     } while (0)
 
 #include <Arduino.h>
+
+#define TWI_STATUS_MASK 0xF8
+#define TWI_BIT_RATE_REGISTER_VALUE 72
+#define TWI_PRESCALER_BITS 0x00
+#define TWI_READ_BIT 1
+#define TWI_WRITE_BIT 0
+#define TWI_ADDRESS_SHIFT 1
+#define TWI_DISABLED 0
+#define TWI_INVALID_DATA 0
+
+enum TwiHardwareStatus : uint8_t {
+    TWI_START_TRANSMITTED = 0x08,
+    TWI_REPEATED_START_TRANSMITTED = 0x10,
+    TWI_ADDRESS_WRITE_ACK = 0x18,
+    TWI_DATA_WRITE_ACK = 0x28,
+    TWI_ADDRESS_READ_ACK = 0x40
+};
+
+enum TwiReadError : uint8_t {
+    TWI_READ_SUCCESS = 0,
+    TWI_READ_START_ERROR = 1,
+    TWI_READ_ADDRESS_WRITE_ERROR = 2,
+    TWI_READ_REGISTER_ERROR = 3,
+    TWI_READ_RESTART_ERROR = 4,
+    TWI_READ_ADDRESS_READ_ERROR = 5
+};
+
+enum TwiWriteError : uint8_t {
+    TWI_WRITE_SUCCESS = 0,
+    TWI_WRITE_START_ERROR = 1,
+    TWI_WRITE_ADDRESS_ERROR = 2,
+    TWI_WRITE_REGISTER_ERROR = 3,
+    TWI_WRITE_DATA_ERROR = 4
+};
+
+enum TwiBlockError : uint8_t {
+    TWI_BLOCK_SUCCESS = 0,
+    TWI_BLOCK_INVALID_ARGUMENT = 1,
+    TWI_BLOCK_START_ERROR = 2,
+    TWI_BLOCK_ADDRESS_WRITE_ERROR = 3,
+    TWI_BLOCK_REGISTER_ERROR = 4,
+    TWI_BLOCK_RESTART_ERROR = 5,
+    TWI_BLOCK_ADDRESS_READ_ERROR = 6
+};
+
 
 class TWI {
 public:

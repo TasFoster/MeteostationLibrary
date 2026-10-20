@@ -5,6 +5,175 @@
 #include "TWI.h"
 #include "../services/TempStorage.h"
 
+#define BME280_DEFAULT_ADDRESS 0x76
+#define BME280_RESET_COMMAND 0xB6
+#define BME280_UPDATE_MASK 0x01
+#define BME280_MEASURING_MASK 0x08
+#define BME280_MODE_MASK 0x03
+#define BME280_NIBBLE_MASK 0x0F
+#define BME280_STANDBY_SHIFT 5
+#define BME280_FILTER_SHIFT 2
+#define BME280_TEMPERATURE_OS_SHIFT 5
+#define BME280_PRESSURE_OS_SHIFT 2
+#define BME280_BYTE_SHIFT 8
+#define BME280_ADC_MSB_SHIFT 12
+#define BME280_NIBBLE_SHIFT 4
+#define BME280_NIBBLE_MULTIPLIER 16
+#define BME280_ADC_BYTES 3
+#define BME280_HUMIDITY_BYTES 2
+#define BME280_CALIBRATION_MAIN_BYTES 26
+#define BME280_CALIBRATION_HUMIDITY_BYTES 7
+#define BME280_MEASUREMENT_START_DELAY_MS 2
+#define BME280_STATUS_TIMEOUT_MS 1000
+#define BME280_CALIBRATION_ERROR_OFFSET 10
+#define BME280_CALCULATION_ERROR -1.0
+#define BME280_HUMIDITY_MIN 0.0
+#define BME280_HUMIDITY_MAX 100.0
+#define BME280_TEMP_ADC_LINEAR_DIVISOR 16384.0
+#define BME280_TEMP_T1_LINEAR_DIVISOR 1024.0
+#define BME280_TEMP_ADC_QUADRATIC_DIVISOR 131072.0
+#define BME280_TEMP_T1_QUADRATIC_DIVISOR 8192.0
+#define BME280_TEMP_CELSIUS_DIVISOR 5120.0
+#define BME280_HUM_TFINE_OFFSET 76800.0
+#define BME280_HUM_H4_MULTIPLIER 64.0
+#define BME280_HUM_H5_DIVISOR 16384.0
+#define BME280_HUM_H2_DIVISOR 65536.0
+#define BME280_HUM_NONLINEAR_DIVISOR 67108864.0
+#define BME280_HUM_H1_DIVISOR 524288.0
+#define BME280_PRESS_TFINE_DIVISOR 2.0
+#define BME280_PRESS_P5_MULTIPLIER 2.0
+#define BME280_PRESS_TFINE_OFFSET 64000.0
+#define BME280_PRESS_COEFFICIENT_DIVISOR 32768.0
+#define BME280_PRESS_VAR2_DIVISOR 4.0
+#define BME280_PRESS_P4_MULTIPLIER 65536.0
+#define BME280_PRESS_VAR1_DIVISOR 524288.0
+#define BME280_PRESS_ADC_OFFSET 1048576.0
+#define BME280_PRESS_VAR2_PRESSURE_DIVISOR 4096.0
+#define BME280_PRESS_PRESSURE_MULTIPLIER 6250.0
+#define BME280_PRESS_P9_DIVISOR 2147483648.0
+#define BME280_PRESS_FINAL_DIVISOR 16.0
+
+enum Bme280Register : uint8_t {
+    BME280_REG_RESET = 0xE0,
+    BME280_REG_CTRL_HUM = 0xF2,
+    BME280_REG_STATUS = 0xF3,
+    BME280_REG_CTRL_MEAS = 0xF4,
+    BME280_REG_CONFIG = 0xF5,
+    BME280_REG_PRESSURE = 0xF7,
+    BME280_REG_TEMPERATURE = 0xFA,
+    BME280_REG_HUMIDITY = 0xFD,
+    BME280_REG_CALIBRATION_MAIN = 0x88,
+    BME280_REG_CALIBRATION_HUMIDITY = 0xE1
+};
+
+enum Bme280Error : uint8_t {
+    BME280_SUCCESS = 0,
+    BME280_INVALID_ARGUMENT = 1,
+    BME280_STATUS_TIMEOUT = 6,
+    BME280_STATUS_READ_ERROR = 7,
+    BME280_COMPENSATION_ERROR = 10
+};
+
+enum class StatusCheck : uint8_t {
+    CalibrationUpdate = 0,
+    Measurement = 1
+};
+
+enum class SensorMode : uint8_t {
+    Sleep = 0,
+    Forced = 1,
+    ForcedAlternate = 2,
+    Normal = 3,
+    Unknown = 0xFF
+};
+
+enum class SensorStatus : int8_t {
+    Error = -2,
+    Ready = -1,
+    Busy = 0
+};
+
+enum class Oversampling : uint8_t {
+    Skipped = 0,
+    X1 = 1,
+    X2 = 2,
+    X4 = 3,
+    X8 = 4,
+    X16 = 5
+};
+
+enum class StandbyTime : uint8_t {
+    Ms0_5 = 0,
+    Ms62_5 = 1,
+    Ms125 = 2,
+    Ms250 = 3,
+    Ms500 = 4,
+    Ms1000 = 5,
+    Ms10 = 6,
+    Ms20 = 7
+};
+
+enum class Filter : uint8_t {
+    Off = 0,
+    X2 = 1,
+    X4 = 2,
+    X8 = 3,
+    X16 = 4,
+    Code5 = 5,
+    Code6 = 6,
+    Code7 = 7
+};
+
+enum class Spi3Wire : uint8_t {
+    Disabled = 0,
+    Enabled = 1
+};
+
+enum CalibrationMainOffset : uint8_t {
+    BME280_CAL_T1_LSB = 0,
+    BME280_CAL_T1_MSB = 1,
+    BME280_CAL_T2_LSB = 2,
+    BME280_CAL_T2_MSB = 3,
+    BME280_CAL_T3_LSB = 4,
+    BME280_CAL_T3_MSB = 5,
+    BME280_CAL_P1_LSB = 6,
+    BME280_CAL_P1_MSB = 7,
+    BME280_CAL_P2_LSB = 8,
+    BME280_CAL_P2_MSB = 9,
+    BME280_CAL_P3_LSB = 10,
+    BME280_CAL_P3_MSB = 11,
+    BME280_CAL_P4_LSB = 12,
+    BME280_CAL_P4_MSB = 13,
+    BME280_CAL_P5_LSB = 14,
+    BME280_CAL_P5_MSB = 15,
+    BME280_CAL_P6_LSB = 16,
+    BME280_CAL_P6_MSB = 17,
+    BME280_CAL_P7_LSB = 18,
+    BME280_CAL_P7_MSB = 19,
+    BME280_CAL_P8_LSB = 20,
+    BME280_CAL_P8_MSB = 21,
+    BME280_CAL_P9_LSB = 22,
+    BME280_CAL_P9_MSB = 23,
+    BME280_CAL_RESERVED = 24,
+    BME280_CAL_H1 = 25
+};
+
+enum CalibrationHumidityOffset : uint8_t {
+    BME280_CAL_H2_LSB = 0,
+    BME280_CAL_H2_MSB = 1,
+    BME280_CAL_H3 = 2,
+    BME280_CAL_H4_MSB = 3,
+    BME280_CAL_H4_H5_SHARED = 4,
+    BME280_CAL_H5_MSB = 5,
+    BME280_CAL_H6 = 6
+};
+
+enum MeasurementByte : uint8_t {
+    BME280_DATA_MSB = 0,
+    BME280_DATA_LSB = 1,
+    BME280_DATA_XLSB = 2
+};
+
 struct bme_calib {
     uint8_t addr = 0;
 
@@ -38,10 +207,10 @@ private:
     bme_calib data;
 
     uint8_t readCalib();
-    int8_t checkStatus(char mode);
+    SensorStatus checkStatus(StatusCheck target);
 
 public:
-    explicit BME280(TWI& twi, uint8_t address = 0x76);
+    explicit BME280(TWI& twi, uint8_t address = BME280_DEFAULT_ADDRESS);
 
     // Реализация интерфейса TempStorage
     uint8_t begin() override;
@@ -52,33 +221,33 @@ public:
 
     // Методы управления датчиком
     uint8_t reset();
-    char checkMode();
+    SensorMode checkMode();
 
     uint8_t setConfig(
-        uint8_t t_sb,
-        uint8_t filter,
-        uint8_t spi3w_en
+        StandbyTime t_sb,
+        Filter filter,
+        Spi3Wire spi3w_en
     );
 
     // Чтение необработанных значений
     uint8_t readTemp(
         uint32_t& res,
-        uint8_t osrs,
-        uint8_t mode
+        Oversampling osrs,
+        SensorMode mode
     );
 
     uint8_t readHum(
         uint32_t& res,
-        uint8_t osrs_h,
-        uint8_t osrs_t,
-        uint8_t mode
+        Oversampling osrs_h,
+        Oversampling osrs_t,
+        SensorMode mode
     );
 
     uint8_t readPressure(
         uint32_t& res,
-        uint8_t osrs_p,
-        uint8_t osrs_t,
-        uint8_t mode
+        Oversampling osrs_p,
+        Oversampling osrs_t,
+        SensorMode mode
     );
 
     // Компенсация измерений
