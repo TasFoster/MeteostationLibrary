@@ -1,8 +1,5 @@
 #ifndef TWI_H
-#define TWI_H
-// uint16_t millis();
 
-void mydelay(uint16_t ms);
 #include <Arduino.h>
 
 #define TWI_STATUS_MASK 0xF8
@@ -13,7 +10,7 @@ void mydelay(uint16_t ms);
 #define TWI_ADDRESS_SHIFT 1
 #define TWI_DISABLED 0
 #define TWI_INVALID_DATA 0
-
+void mydelay(uint16_t ms);
 enum TwiHardwareStatus : uint8_t {
   TWI_START_TRANSMITTED = 0x08,
   TWI_REPEATED_START_TRANSMITTED = 0x10,
