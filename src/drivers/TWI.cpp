@@ -213,7 +213,7 @@ uint8_t TWI::readRegs(
 )
 {
     if (len == 0 || buf == nullptr) {
-        return TWI_BLOCK_INVALID_ARGUMENT;
+        return TWI_READ_INVALID_ARGUMENT;
     }
 
     uint8_t status;
@@ -221,31 +221,31 @@ uint8_t TWI::readRegs(
     status = start();
     if (status != TWI_START_TRANSMITTED) {
         stop();
-        return timeout_ ? TIMEOUT : static_cast<uint8_t>(TWI_BLOCK_START_ERROR);
+        return timeout_ ? TIMEOUT : static_cast<uint8_t>(TWI_READ_START_ERROR);
     }
 
     status = write((addr << TWI_ADDRESS_SHIFT) | TWI_WRITE_BIT);
     if (status != TWI_ADDRESS_WRITE_ACK) {
         stop();
-        return timeout_ ? TIMEOUT : static_cast<uint8_t>(TWI_BLOCK_ADDRESS_WRITE_ERROR);
+        return timeout_ ? TIMEOUT : static_cast<uint8_t>(TWI_READ_ADDRESS_WRITE_ERROR);
     }
 
     status = write(reg);
     if (status != TWI_DATA_WRITE_ACK) {
         stop();
-        return timeout_ ? TIMEOUT : static_cast<uint8_t>(TWI_BLOCK_REGISTER_ERROR);
+        return timeout_ ? TIMEOUT : static_cast<uint8_t>(TWI_READ_REGISTER_ERROR);
     }
 
     status = start();
     if (status != TWI_REPEATED_START_TRANSMITTED) {
         stop();
-        return timeout_ ? TIMEOUT : static_cast<uint8_t>(TWI_BLOCK_RESTART_ERROR);
+        return timeout_ ? TIMEOUT : static_cast<uint8_t>(TWI_READ_RESTART_ERROR);
     }
 
     status = write((addr << TWI_ADDRESS_SHIFT) | TWI_READ_BIT);
     if (status != TWI_ADDRESS_READ_ACK) {
         stop();
-        return timeout_ ? TIMEOUT : static_cast<uint8_t>(TWI_BLOCK_ADDRESS_READ_ERROR);
+        return timeout_ ? TIMEOUT : static_cast<uint8_t>(TWI_READ_ADDRESS_READ_ERROR);
     }
 
     for (uint8_t i = 0; i < len - 1; i++) {
@@ -262,7 +262,7 @@ uint8_t TWI::readRegs(
 
     stop();
 
-    return timeout_ ? TIMEOUT : static_cast<uint8_t>(TWI_BLOCK_SUCCESS);
+    return timeout_ ? TIMEOUT : static_cast<uint8_t>(TWI_READ_SUCCESS);
 }
 
 bool TWI::waitForTwint()

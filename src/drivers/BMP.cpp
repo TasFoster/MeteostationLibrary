@@ -114,8 +114,8 @@ uint8_t BME280::setConfig(
     }
 
     uint8_t config =
-        (static_cast<uint8_t>(t_sb) << BME280_STANDBY_SHIFT) |
-        (static_cast<uint8_t>(filter) << BME280_FILTER_SHIFT) |
+        (static_cast<uint8_t>(t_sb) << 5) |
+        (static_cast<uint8_t>(filter) << 2) |
         static_cast<uint8_t>(spi3w_en);
 
     return bus.writeReg(data.addr, BME280_REG_CONFIG, config);
@@ -147,7 +147,7 @@ uint8_t BME280::readTemp(
     }
 
     // CTRL_MEAS: osrs_t [7:5], osrs_p [4:2], mode [1:0]
-    uint8_t ctrl_meas = (static_cast<uint8_t>(osrs) << BME280_TEMPERATURE_OS_SHIFT) | static_cast<uint8_t>(mode);
+    uint8_t ctrl_meas = (static_cast<uint8_t>(osrs) << 5) | static_cast<uint8_t>(mode);
 
     status = bus.writeReg(data.addr, BME280_REG_CTRL_MEAS, ctrl_meas);
 
@@ -170,18 +170,18 @@ uint8_t BME280::readTemp(
         }
     }
 
-    uint8_t buf[BME280_ADC_BYTES];
+    uint8_t buf[3];
 
-    status = bus.readRegs(data.addr, BME280_REG_TEMPERATURE, buf, BME280_ADC_BYTES);
+    status = bus.readRegs(data.addr, BME280_REG_TEMPERATURE, buf, 3);
 
     if (status != BME280_SUCCESS) {
         return status;
     }
 
     res =
-        ((uint32_t)buf[BME280_DATA_MSB] << BME280_ADC_MSB_SHIFT) |
-        ((uint32_t)buf[BME280_DATA_LSB] << BME280_NIBBLE_SHIFT) |
-        ((uint32_t)buf[BME280_DATA_XLSB] >> BME280_NIBBLE_SHIFT);
+        ((uint32_t)buf[BME280_DATA_MSB] << 12) |
+        ((uint32_t)buf[BME280_DATA_LSB] << 4) |
+        ((uint32_t)buf[BME280_DATA_XLSB] >> 4);
 
     return BME280_SUCCESS;
 }
@@ -212,7 +212,7 @@ uint8_t BME280::readHum(
         return status;
     }
 
-    uint8_t ctrl_meas = (static_cast<uint8_t>(osrs_t) << BME280_TEMPERATURE_OS_SHIFT) | static_cast<uint8_t>(mode);
+    uint8_t ctrl_meas = (static_cast<uint8_t>(osrs_t) << 5) | static_cast<uint8_t>(mode);
 
     status = bus.writeReg(data.addr, BME280_REG_CTRL_MEAS, ctrl_meas);
     delay(BME280_MEASUREMENT_START_DELAY_MS);
@@ -234,16 +234,16 @@ uint8_t BME280::readHum(
         }
     }
 
-    uint8_t buf[BME280_HUMIDITY_BYTES];
+    uint8_t buf[2];
 
-    status = bus.readRegs(data.addr, BME280_REG_HUMIDITY, buf, BME280_HUMIDITY_BYTES);
+    status = bus.readRegs(data.addr, BME280_REG_HUMIDITY, buf, 2);
 
     if (status != BME280_SUCCESS) {
         return status;
     }
 
     res =
-        ((uint32_t)buf[BME280_DATA_MSB] << BME280_BYTE_SHIFT) |
+        ((uint32_t)buf[BME280_DATA_MSB] << 8) |
         buf[BME280_DATA_LSB];
 
     return BME280_SUCCESS;
@@ -276,8 +276,8 @@ uint8_t BME280::readPressure(
     }
 
     uint8_t ctrl_meas =
-        (static_cast<uint8_t>(osrs_t) << BME280_TEMPERATURE_OS_SHIFT) |
-        (static_cast<uint8_t>(osrs_p) << BME280_PRESSURE_OS_SHIFT) |
+        (static_cast<uint8_t>(osrs_t) << 5) |
+        (static_cast<uint8_t>(osrs_p) << 2) |
         static_cast<uint8_t>(mode);
 
     status = bus.writeReg(data.addr, BME280_REG_CTRL_MEAS, ctrl_meas);
@@ -300,18 +300,18 @@ uint8_t BME280::readPressure(
         }
     }
 
-    uint8_t buf[BME280_ADC_BYTES];
+    uint8_t buf[3];
 
-    status = bus.readRegs(data.addr, BME280_REG_PRESSURE, buf, BME280_ADC_BYTES);
+    status = bus.readRegs(data.addr, BME280_REG_PRESSURE, buf, 3);
 
     if (status != BME280_SUCCESS) {
         return status;
     }
 
     res =
-        ((uint32_t)buf[BME280_DATA_MSB] << BME280_ADC_MSB_SHIFT) |
-        ((uint32_t)buf[BME280_DATA_LSB] << BME280_NIBBLE_SHIFT) |
-        ((uint32_t)buf[BME280_DATA_XLSB] >> BME280_NIBBLE_SHIFT);
+        ((uint32_t)buf[BME280_DATA_MSB] << 12) |
+        ((uint32_t)buf[BME280_DATA_LSB] << 4) |
+        ((uint32_t)buf[BME280_DATA_XLSB] >> 4);
 
     return BME280_SUCCESS;
 }
