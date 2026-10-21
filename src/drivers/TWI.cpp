@@ -4,7 +4,7 @@
 void mydelay(uint16_t ms) { delayMicroseconds(ms * 1000); }
 
 uint32_t TWI::mymillis(){
-  
+  return TCNT4;
 }
 
 void TWI::init() {
