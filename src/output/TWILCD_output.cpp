@@ -69,9 +69,6 @@ uint8_t TWILCD_output::setCursor(uint8_t row, uint8_t column) {
   if (row >= LCD_ROWS || column >= LCD_COLUMNS)
     return LCD_CURSOR_INVALID_POSITION;
 
-  cur_row_ = row;
-  cur_column_ = column;
-
   uint8_t address;
 
   if (row == LCD_FIRST_ROW)

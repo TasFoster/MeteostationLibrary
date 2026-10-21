@@ -1,71 +1,52 @@
-#include <Wire.h>
-
+// Arduino Mega 2560, 16 МГц: BME280 (0x76), LCD I2C (0x27).
+// Timer3 вызывает вывод раз в секунду; Timer4 обслуживает таймауты.
+#include <MeteostationLibrary.h>
 #include <avr/interrupt.h>
 #include <util/atomic.h>
 
-//#include <MeteostationLibrary.h>
-#include <Wire.h>
+constexpr uint8_t kLcdAddress = 0x27;
+constexpr uint32_t kSerialBaudRate = 9600;
+constexpr uint16_t kTimer3Compare = 62499;  // 1 с при 16 МГц / 256.
 
-// TWI twi;
-// BME280 sensor(twi, 0x76);
-// TWILCD_output lcd_output(0x27, twi);
+TWI twi;
+BME280 sensor(twi, BME280_DEFAULT_ADDRESS);
+TWILCD_output lcd_output(kLcdAddress, twi);
+MeteoService meteo(sensor, lcd_output);
 
-// MeteoService meteo(sensor, lcd_output);
-
-// volatile bool flag_start = false;
-
-// ISR(TIMER3_COMPA_vect){
-//     flag_start = true;
-// }
-
-
-
-// }
-
-// void meteoDisplay(){
-//     meteo.display(MeasurementType::Humidity);
-// }
-
-// void initTimer(){
-//     TCCR3A = 0;
-//     TCCR3B = 0;
-//     TCNT3 = 0;
-//     OCR3A = 62499;
-//     TIMSK3 = _BV(OCF3A);
-//     TIFR3 = _BV(OCIE3A);
-//     TCCR3B = _BV(WGM32) | _BV(CS32);
-//     interrupts();
-// }
-
-void setup()
-{
-    // initTimer();
-    // Serial.begin(9600);
-    // Serial.println("Program started");
-
-    // twi.init();
-    // Serial.println("TWI initialized");
-
-    // if (sensor.begin() != 0)
-    // {
-    //     Serial.println("BME280 initialization failed!");
-    //     while (true) {}
-    // }
-
-    // Serial.println("BME280 initialized!");
+ISR(TIMER3_COMPA_vect) {
+  meteo.display(MeasurementType::Humidity);
 }
 
-void loop()
-{
-    // bool run;
-
-    // ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
-    //     run = flag_start;
-    //     flag_start = false;
-    // }
-
-
-    // if (run){
-    //     meteoDisplay();
-    // }
+void InitDisplayTimer() {
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+    TCCR3B = 0;
+    TIMSK3 = 0;
+    TCCR3A = 0;
+    TCCR3C = 0;
+    TCNT3 = 0;
+    OCR3A = kTimer3Compare;
+    TIFR3 = _BV(OCF3A);  // Сбросить ожидающее событие сравнения.
+    TIMSK3 = _BV(OCIE3A);
+    TCCR3B = _BV(WGM32) | _BV(CS32);  // CTC, делитель 256.
+  }
 }
+
+void setup() {
+  Serial.begin(kSerialBaudRate);
+  twi.init();
+
+  if (sensor.begin() != BME280_SUCCESS) {
+    Serial.println("BME280 initialization failed");
+    while (true) {}
+  }
+
+  if (lcd_output.init(LCD_CURSOR_STEADY) != LCD_SUCCESS) {
+    Serial.println("LCD initialization failed");
+    while (true) {}
+  }
+
+  // Запускать периодический вывод после инициализации устройств.
+  InitDisplayTimer();
+}
+
+void loop() {}

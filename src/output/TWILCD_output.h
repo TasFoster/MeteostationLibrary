@@ -70,12 +70,6 @@ class TWILCD_output : public OutputInterface {
 
   uint8_t addr_;
   TWI &twi_;
-
-  uint8_t zero_ = LCD_BACKLIGHT;
-  uint8_t one_ = LCD_ENABLE | LCD_BACKLIGHT;
-
-  uint8_t cur_row_ = LCD_FIRST_ROW;
-  uint8_t cur_column_ = 0;
 };
 
 #endif
