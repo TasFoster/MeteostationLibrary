@@ -1,20 +1,40 @@
 #include "TWI.h"
 #include <Arduino.h>
+#include <util/atomic.h>
 
 void mydelay(uint16_t ms) { delayMicroseconds(ms * 1000); }
 
-uint32_t TWI::mymillis(){
-  return TCNT4;
+namespace {
+constexpr uint32_t kTimerTickUs = 64;
+constexpr uint32_t kMicrosecondsPerMillisecond = 1000;
+static_assert(F_CPU == 16000000UL, "Timer4 timeouts require 16 MHz");
+}  // namespace
+
+uint16_t TWI::timerTicks() const {
+  uint16_t ticks;
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+    ticks = TCNT4;
+  }
+  return ticks;
+}
+
+uint32_t TWI::mymillis(uint16_t started_at) const {
+  const uint16_t elapsed_ticks =
+      static_cast<uint16_t>(timerTicks() - started_at);
+  return static_cast<uint32_t>(elapsed_ticks) * kTimerTickUs /
+         kMicrosecondsPerMillisecond;
 }
 
 void TWI::init() {
-
-  TCCR4A = 0;   // Обычный режим счёта — Normal.
-  TCCR4B = 0;   // Пока остановлен.
-  TIMSK4 = 0;   // Прерывания Timer4 запрещены.
-  TCNT4 = 0;    // Начальное значение счётчика.
-
-  TCCR4B = _BV(CS42) | _BV(CS40);  // Запуск, делитель 1024.
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+    TCCR4B = 0;
+    TCCR4A = 0;
+    TCCR4C = 0;
+    TIMSK4 = 0;
+    TCNT4 = 0;
+    TIFR4 = _BV(TOV4);
+    TCCR4B = _BV(CS42) | _BV(CS40);  // Normal, делитель 1024.
+  }
 
   TWBR = TWI_BIT_RATE_REGISTER_VALUE;
   TWSR = TWI_PRESCALER_BITS;
@@ -215,10 +235,10 @@ uint8_t TWI::readRegs(uint8_t addr, uint8_t reg, uint8_t *buf, uint8_t len) {
 }
 
 bool TWI::waitForTwint() {
-  const unsigned long startedAt = millis();
+  const uint16_t started_at = timerTicks();
 
   while (!(TWCR & (1 << TWINT))) {
-    if (millis() - startedAt >= TIMEOUT_MS) {
+    if (mymillis(started_at) >= TIMEOUT_MS) {
       timeout_ = true;
       TWCR = TWI_DISABLED;
       return false;
@@ -229,10 +249,10 @@ bool TWI::waitForTwint() {
 }
 
 bool TWI::waitForStopClear() {
-  const unsigned long startedAt = millis();
+  const uint16_t started_at = timerTicks();
 
   while (TWCR & (1 << TWSTO)) {
-    if (millis() - startedAt >= TIMEOUT_MS) {
+    if (mymillis(started_at) >= TIMEOUT_MS) {
       timeout_ = true;
       TWCR = TWI_DISABLED;
       return false;

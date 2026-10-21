@@ -31,7 +31,7 @@ uint8_t BME280::reset() {
     return status;
   }
 
-  unsigned long startTime = millis();
+  const uint16_t started_at = bus_.timerTicks();
 
   while (true) {
     SensorStatus result = checkStatus(StatusCheck::CalibrationUpdate);
@@ -44,7 +44,7 @@ uint8_t BME280::reset() {
       return BME280_STATUS_READ_ERROR;
     }
 
-    if (millis() - startTime > BME280_STATUS_TIMEOUT_MS) {
+    if (bus_.mymillis(started_at) > BME280_STATUS_TIMEOUT_MS) {
       return BME280_STATUS_TIMEOUT;
     }
   }
@@ -143,10 +143,10 @@ uint8_t BME280::readTemp(uint32_t &res, Oversampling osrs, SensorMode mode) {
 
   // В forced mode ожидаем завершения измерения
   if (mode != SensorMode::Normal) {
-    unsigned long startTime = millis();
+    const uint16_t started_at = bus_.timerTicks();
 
     while (checkStatus(StatusCheck::Measurement) == SensorStatus::Busy) {
-      if (millis() - startTime > BME280_STATUS_TIMEOUT_MS) {
+      if (bus_.mymillis(started_at) > BME280_STATUS_TIMEOUT_MS) {
         return BME280_STATUS_TIMEOUT;
       }
     }
@@ -204,10 +204,10 @@ uint8_t BME280::readHum(uint32_t &res, Oversampling osrs_h, Oversampling osrs_t,
   }
 
   if (mode != SensorMode::Normal) {
-    unsigned long startTime = millis();
+    const uint16_t started_at = bus_.timerTicks();
 
     while (checkStatus(StatusCheck::Measurement) == SensorStatus::Busy) {
-      if (millis() - startTime > BME280_STATUS_TIMEOUT_MS) {
+      if (bus_.mymillis(started_at) > BME280_STATUS_TIMEOUT_MS) {
         return BME280_STATUS_TIMEOUT;
       }
     }
@@ -265,10 +265,10 @@ uint8_t BME280::readPressure(uint32_t &res, Oversampling osrs_p,
   }
 
   if (mode != SensorMode::Normal) {
-    unsigned long startTime = millis();
+    const uint16_t started_at = bus_.timerTicks();
 
     while (checkStatus(StatusCheck::Measurement) == SensorStatus::Busy) {
-      if (millis() - startTime > BME280_STATUS_TIMEOUT_MS) {
+      if (bus_.mymillis(started_at) > BME280_STATUS_TIMEOUT_MS) {
         return BME280_STATUS_TIMEOUT;
       }
     }

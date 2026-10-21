@@ -45,9 +45,16 @@ class TWI {
  public:
   static constexpr uint8_t TIMEOUT = 0xFF;
   static constexpr uint32_t TIMEOUT_MS = 25;
-  static int time_counter_ = 0;
 
-  // Инициализация интерфейса TWI
+  // Сохраняет начальные тики Timer4 для измерения интервала.
+  uint16_t timerTicks() const;
+
+  // Возвращает прошедшие миллисекунды с учётом переполнения Timer4.
+  // Интервал должен быть короче 4,194304 с, проверка — регулярной.
+  // Перед использованием требуется init(); Timer4 выделен под таймауты.
+  uint32_t mymillis(uint16_t started_at) const;
+
+  // Инициализация интерфейса TWI и Timer4 без его прерываний.
   void init();
 
   // Управление передачей
@@ -72,8 +79,6 @@ class TWI {
  private:
   bool waitForTwint();
   bool waitForStopClear();
-
-  uint32_t mymillis();
 
   bool timeout_ = false;
 };
