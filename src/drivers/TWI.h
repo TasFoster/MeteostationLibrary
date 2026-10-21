@@ -11,7 +11,10 @@
 #define TWI_ADDRESS_SHIFT 1
 #define TWI_DISABLED 0
 #define TWI_INVALID_DATA 0
+
 void mydelay(uint16_t ms);
+
+
 enum TwiHardwareStatus : uint8_t {
   TWI_START_TRANSMITTED = 0x08,
   TWI_REPEATED_START_TRANSMITTED = 0x10,
@@ -42,6 +45,7 @@ class TWI {
  public:
   static constexpr uint8_t TIMEOUT = 0xFF;
   static constexpr uint32_t TIMEOUT_MS = 25;
+  static int time_counter_ = 0;
 
   // Инициализация интерфейса TWI
   void init();
@@ -68,6 +72,8 @@ class TWI {
  private:
   bool waitForTwint();
   bool waitForStopClear();
+
+  uint32_t mymillis();
 
   bool timeout_ = false;
 };

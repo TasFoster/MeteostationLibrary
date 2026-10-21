@@ -2,7 +2,20 @@
 #include <Arduino.h>
 
 void mydelay(uint16_t ms) { delayMicroseconds(ms * 1000); }
+
+uint32_t TWI::mymillis(){
+  
+}
+
 void TWI::init() {
+
+  TCCR4A = 0;   // Обычный режим счёта — Normal.
+  TCCR4B = 0;   // Пока остановлен.
+  TIMSK4 = 0;   // Прерывания Timer4 запрещены.
+  TCNT4 = 0;    // Начальное значение счётчика.
+
+  TCCR4B = _BV(CS42) | _BV(CS40);  // Запуск, делитель 1024.
+
   TWBR = TWI_BIT_RATE_REGISTER_VALUE;
   TWSR = TWI_PRESCALER_BITS;
   TWCR = (1 << TWEN);
