@@ -68,54 +68,6 @@ uint8_t TWI::readNack() {
   return TWDR;
 }
 
-uint8_t TWI::readReg(uint8_t addr, uint8_t reg) {
-  uint8_t status;
-
-  status = start();
-  if (status != TWI_START_TRANSMITTED) {
-    stop();
-    return timeout_ ? TIMEOUT : static_cast<uint8_t>(TWI_READ_START_ERROR);
-  }
-
-  status = write((addr << TWI_ADDRESS_SHIFT) | TWI_WRITE_BIT);
-  if (status != TWI_ADDRESS_WRITE_ACK) {
-    stop();
-    return timeout_ ? TIMEOUT
-                    : static_cast<uint8_t>(TWI_READ_ADDRESS_WRITE_ERROR);
-  }
-
-  status = write(reg);
-  if (status != TWI_DATA_WRITE_ACK) {
-    stop();
-    return timeout_ ? TIMEOUT : static_cast<uint8_t>(TWI_READ_REGISTER_ERROR);
-  }
-
-  status = start();
-  if (status != TWI_REPEATED_START_TRANSMITTED) {
-    stop();
-    return timeout_ ? TIMEOUT : static_cast<uint8_t>(TWI_READ_RESTART_ERROR);
-  }
-
-  status = write((addr << TWI_ADDRESS_SHIFT) | TWI_READ_BIT);
-  if (status != TWI_ADDRESS_READ_ACK) {
-    stop();
-    return timeout_ ? TIMEOUT
-                    : static_cast<uint8_t>(TWI_READ_ADDRESS_READ_ERROR);
-  }
-
-  uint8_t value = readNack();
-  if (timeout_) {
-    return TIMEOUT;
-  }
-
-  stop();
-  if (timeout_) {
-    return TIMEOUT;
-  }
-
-  return value;
-}
-
 uint8_t TWI::readReg(uint8_t addr, uint8_t reg, uint8_t &value) {
   uint8_t status;
 

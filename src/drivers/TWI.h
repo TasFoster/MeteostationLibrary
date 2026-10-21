@@ -56,7 +56,6 @@ class TWI {
   uint8_t readNack();
 
   // Работа с регистрами устройства
-  uint8_t readReg(uint8_t addr, uint8_t reg);
   uint8_t readReg(uint8_t addr, uint8_t reg, uint8_t &value);
   uint8_t writeReg(uint8_t addr, uint8_t reg, uint8_t value);
   uint8_t readRegs(uint8_t addr, uint8_t reg, uint8_t *buf, uint8_t len);
