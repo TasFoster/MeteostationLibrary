@@ -117,20 +117,20 @@ class BME280 : public TempStorage {
  public:
   explicit BME280(TWI &twi, uint8_t address = BME280_DEFAULT_ADDRESS);
 
-  // Реализация интерфейса TempStorage
+  // Интерфейс TempStorage
   uint8_t begin() override;
 
   uint8_t readTemperature(double &temperature) override;
   uint8_t readPressure(double &pressure) override;
   uint8_t readHumidity(double &humidity) override;
 
-  // Методы управления датчиком
+  // Управление датчиком
   uint8_t reset();
   SensorMode checkMode();
 
   uint8_t setConfig(StandbyTime t_sb, Filter filter, Spi3Wire spi3w_en);
 
-  // Чтение необработанных значений
+  // Необработанные измерения
   uint8_t readTemp(uint32_t &res, Oversampling osrs, SensorMode mode);
 
   uint8_t readHum(uint32_t &res, Oversampling osrs_h, Oversampling osrs_t,

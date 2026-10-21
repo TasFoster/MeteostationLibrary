@@ -46,15 +46,15 @@ class TWI {
   static constexpr uint8_t TIMEOUT = 0xFF;
   static constexpr uint32_t TIMEOUT_MS = 25;
 
-  // Сохраняет начальные тики Timer4 для измерения интервала.
+  // Текущее значение Timer4, в тиках.
   uint16_t timerTicks() const;
 
-  // Возвращает прошедшие миллисекунды с учётом переполнения Timer4.
-  // Интервал должен быть короче 4,194304 с, проверка — регулярной.
-  // Перед использованием требуется init(); Timer4 выделен под таймауты.
+  // Прошедшие миллисекунды; переполнение учтено.
+  // started_at — тики timerTicks(); интервал < 4,194304 с.
+  // Опрос регулярный. Сначала init(); Timer4 занят таймаутами.
   uint32_t mymillis(uint16_t started_at) const;
 
-  // Инициализация интерфейса TWI и Timer4 без его прерываний.
+  // TWI и Timer4. Прерывания Timer4 выключены.
   void init();
 
   // Управление передачей
@@ -66,14 +66,13 @@ class TWI {
   uint8_t readAck();
   uint8_t readNack();
 
-  // Работа с регистрами устройства
+  // Регистры устройства
   uint8_t readReg(uint8_t addr, uint8_t reg, uint8_t &value);
   uint8_t writeReg(uint8_t addr, uint8_t reg, uint8_t value);
   uint8_t readRegs(uint8_t addr, uint8_t reg, uint8_t *buf, uint8_t len);
 
   // Проверять сразу после операции.
-  // START, write и чтение байта сбрасывают предыдущий признак.
-  // STOP сохраняет его.
+  // START/write/чтение сбрасывают флаг; STOP сохраняет.
   bool timedOut() const { return timeout_; }
 
  private:

@@ -1,12 +1,12 @@
 // Arduino Mega 2560, 16 МГц: BME280 (0x76), LCD I2C (0x27).
-// Timer3 вызывает вывод раз в секунду; Timer4 обслуживает таймауты.
+// Timer3: вывод раз в секунду. Timer4: таймауты.
 #include <MeteostationLibrary.h>
 #include <avr/interrupt.h>
 #include <util/atomic.h>
 
 constexpr uint8_t kLcdAddress = 0x27;
 constexpr uint32_t kSerialBaudRate = 9600;
-constexpr uint16_t kTimer3Compare = 62499;  // 1 с при 16 МГц / 256.
+constexpr uint16_t kTimer3Compare = 62499;  // 1 с: 16 МГц / 256.
 
 TWI twi;
 BME280 sensor(twi, BME280_DEFAULT_ADDRESS);
@@ -25,7 +25,7 @@ void InitDisplayTimer() {
     TCCR3C = 0;
     TCNT3 = 0;
     OCR3A = kTimer3Compare;
-    TIFR3 = _BV(OCF3A);  // Сбросить ожидающее событие сравнения.
+    TIFR3 = _BV(OCF3A);  // Сброс флага сравнения.
     TIMSK3 = _BV(OCIE3A);
     TCCR3B = _BV(WGM32) | _BV(CS32);  // CTC, делитель 256.
   }
@@ -45,7 +45,7 @@ void setup() {
     while (true) {}
   }
 
-  // Запускать периодический вывод после инициализации устройств.
+  // Запуск Timer3 после инициализации устройств.
   InitDisplayTimer();
 }
 

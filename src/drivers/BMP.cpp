@@ -51,8 +51,8 @@ uint8_t BME280::reset() {
 }
 
 // Проверка состояния датчика
-// CalibrationUpdate — обновление калибровочных данных
-// Measurement — выполнение измерения
+// CalibrationUpdate — обновление калибровки.
+// Measurement — измерение.
 SensorStatus BME280::checkStatus(StatusCheck target) {
   uint8_t status = 0;
 
@@ -85,14 +85,14 @@ SensorMode BME280::checkMode() {
   SensorMode mode = static_cast<SensorMode>(ctrl_meas & BME280_MODE_MASK);
 
   if (mode == SensorMode::Sleep) {
-    return SensorMode::Sleep; // Sleep
+    return SensorMode::Sleep;
   }
 
   if (mode == SensorMode::Forced || mode == SensorMode::ForcedAlternate) {
-    return SensorMode::Forced; // Forced
+    return SensorMode::Forced;
   }
 
-  return SensorMode::Normal; // Normal
+  return SensorMode::Normal;
 }
 
 // Настройка регистра CONFIG
@@ -123,7 +123,7 @@ uint8_t BME280::readTemp(uint32_t &res, Oversampling osrs, SensorMode mode) {
     return status;
   }
 
-  // Отключаем измерение влажности
+  // Влажность отключена.
   status = bus_.writeReg(data_.addr, BME280_REG_CTRL_HUM,
                         static_cast<uint8_t>(Oversampling::Skipped));
 
@@ -141,7 +141,7 @@ uint8_t BME280::readTemp(uint32_t &res, Oversampling osrs, SensorMode mode) {
     return status;
   }
 
-  // В forced mode ожидаем завершения измерения
+  // Forced: ожидание измерения.
   if (mode != SensorMode::Normal) {
     const uint16_t started_at = bus_.timerTicks();
 
@@ -186,7 +186,7 @@ uint8_t BME280::readHum(uint32_t &res, Oversampling osrs_h, Oversampling osrs_t,
     return status;
   }
 
-  // CTRL_HUM необходимо записывать перед CTRL_MEAS
+  // Порядок записи: CTRL_HUM → CTRL_MEAS.
   status = bus_.writeReg(data_.addr, BME280_REG_CTRL_HUM,
                         static_cast<uint8_t>(osrs_h));
 
@@ -246,7 +246,7 @@ uint8_t BME280::readPressure(uint32_t &res, Oversampling osrs_p,
     return status;
   }
 
-  // Отключаем измерение влажности
+  // Влажность отключена.
   status = bus_.writeReg(data_.addr, BME280_REG_CTRL_HUM,
                         static_cast<uint8_t>(Oversampling::Skipped));
 
@@ -293,7 +293,7 @@ uint8_t BME280::readPressure(uint32_t &res, Oversampling osrs_p,
   return BME280_SUCCESS;
 }
 
-// Чтение калибровочных коэффициентов
+// Калибровочные коэффициенты
 uint8_t BME280::readCalib() {
   uint8_t buf1[26];
   uint8_t buf2[7];
@@ -344,7 +344,7 @@ uint8_t BME280::readCalib() {
       buf2[0]);
   data_.dig_H3 = buf2[2];
 
-  // dig_H4 и dig_H5 — 12-битные знаковые значения
+  // dig_H4/dig_H5: знаковые 12 бит.
   int16_t h4 =
       static_cast<int16_t>(static_cast<int16_t>(static_cast<int8_t>(buf2[3])) *
       16 + (buf2[4] & 0x0F));
@@ -452,11 +452,9 @@ double BME280::calculatePressure(uint32_t adc_P) {
   return pressure;
 }
 
-// =====================================================
-// Реализация интерфейса TempStorage
-// =====================================================
+// Интерфейс TempStorage
 
-// Получить температуру в градусах Цельсия
+// Температура, °C.
 uint8_t BME280::readTemperature(double &temperature) {
   uint32_t rawTemperature = 0;
 
@@ -472,7 +470,7 @@ uint8_t BME280::readTemperature(double &temperature) {
   return BME280_SUCCESS;
 }
 
-// Получить давление в паскалях
+// Давление, Па.
 uint8_t BME280::readPressure(double &pressure) {
   uint32_t rawPressure = 0;
 
@@ -492,7 +490,7 @@ uint8_t BME280::readPressure(double &pressure) {
   return BME280_SUCCESS;
 }
 
-// Получить относительную влажность в процентах
+// Относительная влажность, %.
 uint8_t BME280::readHumidity(double &humidity) {
   uint32_t rawHumidity = 0;
 
