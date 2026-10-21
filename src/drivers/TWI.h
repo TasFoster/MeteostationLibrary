@@ -3,48 +3,48 @@
 
 #include <Arduino.h>
 
-#define TWI_STATUS_MASK 0xF8
-#define TWI_BIT_RATE_REGISTER_VALUE 72
-#define TWI_PRESCALER_BITS 0x00
-#define TWI_READ_BIT 1
-#define TWI_WRITE_BIT 0
-#define TWI_ADDRESS_SHIFT 1
-#define TWI_DISABLED 0
-#define TWI_INVALID_DATA 0
+constexpr uint8_t kTwiStatusMask = 0xF8;
+constexpr uint8_t kTwiBitRateRegisterValue = 72;
+constexpr uint8_t kTwiPrescalerBits = 0x00;
+constexpr uint8_t kTwiReadBit = 1;
+constexpr uint8_t kTwiWriteBit = 0;
+constexpr uint8_t kTwiAddressShift = 1;
+constexpr uint8_t kTwiDisabled = 0;
+constexpr uint8_t kTwiInvalidData = 0;
 
 void mydelay(uint16_t ms);
 
 
 enum TwiHardwareStatus : uint8_t {
-  TWI_START_TRANSMITTED = 0x08,
-  TWI_REPEATED_START_TRANSMITTED = 0x10,
-  TWI_ADDRESS_WRITE_ACK = 0x18,
-  TWI_DATA_WRITE_ACK = 0x28,
-  TWI_ADDRESS_READ_ACK = 0x40
+  kTwiStartTransmitted = 0x08,
+  kTwiRepeatedStartTransmitted = 0x10,
+  kTwiAddressWriteAck = 0x18,
+  kTwiDataWriteAck = 0x28,
+  kTwiAddressReadAck = 0x40
 };
 
 enum TwiReadError : uint8_t {
-  TWI_READ_SUCCESS = 0,
-  TWI_READ_START_ERROR = 1,
-  TWI_READ_ADDRESS_WRITE_ERROR = 2,
-  TWI_READ_REGISTER_ERROR = 3,
-  TWI_READ_RESTART_ERROR = 4,
-  TWI_READ_ADDRESS_READ_ERROR = 5,
-  TWI_READ_INVALID_ARGUMENT = 6
+  kTwiReadSuccess = 0,
+  kTwiReadStartError = 1,
+  kTwiReadAddressWriteError = 2,
+  kTwiReadRegisterError = 3,
+  kTwiReadRestartError = 4,
+  kTwiReadAddressReadError = 5,
+  kTwiReadInvalidArgument = 6
 };
 
 enum TwiWriteError : uint8_t {
-  TWI_WRITE_SUCCESS = 0,
-  TWI_WRITE_START_ERROR = 1,
-  TWI_WRITE_ADDRESS_ERROR = 2,
-  TWI_WRITE_REGISTER_ERROR = 3,
-  TWI_WRITE_DATA_ERROR = 4
+  kTwiWriteSuccess = 0,
+  kTwiWriteStartError = 1,
+  kTwiWriteAddressError = 2,
+  kTwiWriteRegisterError = 3,
+  kTwiWriteDataError = 4
 };
 
 class TWI {
  public:
-  static constexpr uint8_t TIMEOUT = 0xFF;
-  static constexpr uint32_t TIMEOUT_MS = 25;
+  static constexpr uint8_t kTimeout = 0xFF;
+  static constexpr uint32_t kTimeoutMs = 25;
 
   // Текущее значение Timer4, в тиках.
   uint16_t timerTicks() const;

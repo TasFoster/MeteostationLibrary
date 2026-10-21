@@ -9,28 +9,28 @@ void MeteoService::display(MeasurementType type) {
   double value;
 
   switch (type) {
-  case MeasurementType::Temperature:
-    if (storage_.readTemperature(value) == TEMP_STORAGE_SUCCESS) {
+  case MeasurementType::kTemperature:
+    if (storage_.readTemperature(value) == kTempStorageSuccess) {
       String msg = "Temperature: ";
-      msg += String(value, METEO_DISPLAY_DECIMAL_PLACES);
+      msg += String(value, kMeteoDisplayDecimalPlaces);
       msg += " C";
       output_.print(msg);
     }
     break;
 
-  case MeasurementType::Pressure:
-    if (storage_.readPressure(value) == TEMP_STORAGE_SUCCESS) {
+  case MeasurementType::kPressure:
+    if (storage_.readPressure(value) == kTempStorageSuccess) {
       String msg = "Pres: ";
-      msg += String(value, METEO_DISPLAY_DECIMAL_PLACES);
+      msg += String(value, kMeteoDisplayDecimalPlaces);
       msg += " Pa";
       output_.print(msg);
     }
     break;
 
-  case MeasurementType::Humidity:
-    if (storage_.readHumidity(value) == TEMP_STORAGE_SUCCESS) {
+  case MeasurementType::kHumidity:
+    if (storage_.readHumidity(value) == kTempStorageSuccess) {
       String msg = "Hum: ";
-      msg += String(value, METEO_DISPLAY_DECIMAL_PLACES);
+      msg += String(value, kMeteoDisplayDecimalPlaces);
       msg += " %";
       output_.print(msg);
     }

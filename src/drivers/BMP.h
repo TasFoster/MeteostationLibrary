@@ -5,85 +5,85 @@
 #include "TWI.h"
 #include <Arduino.h>
 
-#define BME280_DEFAULT_ADDRESS 0x76
-#define BME280_RESET_COMMAND 0xB6
-#define BME280_UPDATE_MASK 0x01
-#define BME280_MEASURING_MASK 0x08
-#define BME280_MODE_MASK 0x03
-#define BME280_MEASUREMENT_START_mydelay_MS 2
-#define BME280_STATUS_TIMEOUT_MS 1000
-#define BME280_CALIBRATION_ERROR_OFFSET 10
+constexpr uint8_t kBme280DefaultAddress = 0x76;
+constexpr uint8_t kBme280ResetCommand = 0xB6;
+constexpr uint8_t kBme280UpdateMask = 0x01;
+constexpr uint8_t kBme280MeasuringMask = 0x08;
+constexpr uint8_t kBme280ModeMask = 0x03;
+constexpr uint16_t kBme280MeasurementStartDelayMs = 2;
+constexpr uint32_t kBme280StatusTimeoutMs = 1000;
+constexpr uint8_t kBme280CalibrationErrorOffset = 10;
 
 enum Bme280Register : uint8_t {
-  BME280_REG_RESET = 0xE0,
-  BME280_REG_CTRL_HUM = 0xF2,
-  BME280_REG_STATUS = 0xF3,
-  BME280_REG_CTRL_MEAS = 0xF4,
-  BME280_REG_CONFIG = 0xF5,
-  BME280_REG_PRESSURE = 0xF7,
-  BME280_REG_TEMPERATURE = 0xFA,
-  BME280_REG_HUMIDITY = 0xFD,
-  BME280_REG_CALIBRATION_MAIN = 0x88,
-  BME280_REG_CALIBRATION_HUMIDITY = 0xE1
+  kBme280RegReset = 0xE0,
+  kBme280RegCtrlHum = 0xF2,
+  kBme280RegStatus = 0xF3,
+  kBme280RegCtrlMeas = 0xF4,
+  kBme280RegConfig = 0xF5,
+  kBme280RegPressure = 0xF7,
+  kBme280RegTemperature = 0xFA,
+  kBme280RegHumidity = 0xFD,
+  kBme280RegCalibrationMain = 0x88,
+  kBme280RegCalibrationHumidity = 0xE1
 };
 
 enum Bme280Error : uint8_t {
-  BME280_SUCCESS = 0,
-  BME280_INVALID_ARGUMENT = 1,
-  BME280_STATUS_TIMEOUT = 6,
-  BME280_STATUS_READ_ERROR = 7,
-  BME280_COMPENSATION_ERROR = 10
+  kBme280Success = 0,
+  kBme280InvalidArgument = 1,
+  kBme280StatusTimeout = 6,
+  kBme280StatusReadError = 7,
+  kBme280CompensationError = 10
 };
 
-enum class StatusCheck : uint8_t { CalibrationUpdate = 0, Measurement = 1 };
+enum class StatusCheck : uint8_t { kCalibrationUpdate = 0, kMeasurement = 1 };
 
 enum class SensorMode : uint8_t {
-  Sleep = 0,
-  Forced = 1,
-  ForcedAlternate = 2,
-  Normal = 3,
-  Unknown = 0xFF
+  kSleep = 0,
+  kForced = 1,
+  kForcedAlternate = 2,
+  kNormal = 3,
+  kUnknown = 0xFF
 };
 
-enum class SensorStatus : int8_t { Error = -2, Ready = -1, Busy = 0 };
+enum class SensorStatus : int8_t { kError = -2, kReady = -1, kBusy = 0 };
 
 enum class Oversampling : uint8_t {
-  Skipped = 0,
-  X1 = 1,
-  X2 = 2,
-  X4 = 3,
-  X8 = 4,
-  X16 = 5
+  kSkipped = 0,
+  kX1 = 1,
+  kX2 = 2,
+  kX4 = 3,
+  kX8 = 4,
+  kX16 = 5
 };
 
 enum class StandbyTime : uint8_t {
-  Ms0_5 = 0,
-  Ms62_5 = 1,
-  Ms125 = 2,
-  Ms250 = 3,
-  Ms500 = 4,
-  Ms1000 = 5,
-  Ms10 = 6,
-  Ms20 = 7
+  kMs0_5 = 0,
+  kMs62_5 = 1,
+  kMs125 = 2,
+  kMs250 = 3,
+  kMs500 = 4,
+  kMs1000 = 5,
+  kMs10 = 6,
+  kMs20 = 7
 };
 
 enum class Filter : uint8_t {
-  Off = 0,
-  X2 = 1,
-  X4 = 2,
-  X8 = 3,
-  X16 = 4,
-  Code5 = 5,
-  Code6 = 6,
-  Code7 = 7
+  kOff = 0,
+  kX2 = 1,
+  kX4 = 2,
+  kX8 = 3,
+  kX16 = 4,
+  kCode5 = 5,
+  kCode6 = 6,
+  kCode7 = 7
 };
 
-enum class Spi3Wire : uint8_t { Disabled = 0, Enabled = 1 };
+enum class Spi3Wire : uint8_t { kDisabled = 0, kEnabled = 1 };
 
 enum MeasurementByte : uint8_t {
-  BME280_DATA_MSB = 0,
-  BME280_DATA_LSB = 1,
-  BME280_DATA_XLSB = 2
+  kBme280DataMsb = 0,
+  kBme280DataLsb = 1,
+  kBme280DataXlsb = 2
 };
 
 struct bme_calib {
@@ -115,7 +115,7 @@ struct bme_calib {
 
 class BME280 : public TempStorage {
  public:
-  explicit BME280(TWI &twi, uint8_t address = BME280_DEFAULT_ADDRESS);
+  explicit BME280(TWI &twi, uint8_t address = kBme280DefaultAddress);
 
   // Интерфейс TempStorage
   uint8_t begin() override;

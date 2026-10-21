@@ -6,12 +6,12 @@
 #include <Arduino.h>
 
 enum class MeasurementType : char {
-  Temperature = 't',
-  Pressure = 'p',
-  Humidity = 'h'
+  kTemperature = 't',
+  kPressure = 'p',
+  kHumidity = 'h'
 };
 
-#define METEO_DISPLAY_DECIMAL_PLACES 2
+constexpr uint8_t kMeteoDisplayDecimalPlaces = 2;
 
 class MeteoService {
  public:

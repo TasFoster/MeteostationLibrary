@@ -36,8 +36,8 @@ void TWI::init() {
     TCCR4B = _BV(CS42) | _BV(CS40);  // Normal, делитель 1024.
   }
 
-  TWBR = TWI_BIT_RATE_REGISTER_VALUE;
-  TWSR = TWI_PRESCALER_BITS;
+  TWBR = kTwiBitRateRegisterValue;
+  TWSR = kTwiPrescalerBits;
   TWCR = (1 << TWEN);
   timeout_ = false;
 }
@@ -48,10 +48,10 @@ uint8_t TWI::start() {
   TWCR = (1 << TWSTA) | (1 << TWEN) | (1 << TWINT);
 
   if (!waitForTwint()) {
-    return TIMEOUT;
+    return kTimeout;
   }
 
-  return TWSR & TWI_STATUS_MASK;
+  return TWSR & kTwiStatusMask;
 }
 
 void TWI::stop() {
@@ -71,10 +71,10 @@ uint8_t TWI::write(uint8_t data) {
   TWCR = (1 << TWINT) | (1 << TWEN);
 
   if (!waitForTwint()) {
-    return TIMEOUT;
+    return kTimeout;
   }
 
-  return TWSR & TWI_STATUS_MASK;
+  return TWSR & kTwiStatusMask;
 }
 
 uint8_t TWI::readAck() {
@@ -83,7 +83,7 @@ uint8_t TWI::readAck() {
   TWCR = (1 << TWINT) | (1 << TWEN) | (1 << TWEA);
 
   if (!waitForTwint()) {
-    return TWI_INVALID_DATA;
+    return kTwiInvalidData;
   }
 
   return TWDR;
@@ -95,7 +95,7 @@ uint8_t TWI::readNack() {
   TWCR = (1 << TWINT) | (1 << TWEN);
 
   if (!waitForTwint()) {
-    return TWI_INVALID_DATA;
+    return kTwiInvalidData;
   }
 
   return TWDR;
@@ -105,142 +105,142 @@ uint8_t TWI::readReg(uint8_t addr, uint8_t reg, uint8_t &value) {
   uint8_t status;
 
   status = start();
-  if (status != TWI_START_TRANSMITTED) {
+  if (status != kTwiStartTransmitted) {
     stop();
-    return timeout_ ? TIMEOUT : static_cast<uint8_t>(TWI_READ_START_ERROR);
+    return timeout_ ? kTimeout : static_cast<uint8_t>(kTwiReadStartError);
   }
 
-  status = write((addr << TWI_ADDRESS_SHIFT) | TWI_WRITE_BIT);
-  if (status != TWI_ADDRESS_WRITE_ACK) {
+  status = write((addr << kTwiAddressShift) | kTwiWriteBit);
+  if (status != kTwiAddressWriteAck) {
     stop();
-    return timeout_ ? TIMEOUT
-                    : static_cast<uint8_t>(TWI_READ_ADDRESS_WRITE_ERROR);
+    return timeout_ ? kTimeout
+                    : static_cast<uint8_t>(kTwiReadAddressWriteError);
   }
 
   status = write(reg);
-  if (status != TWI_DATA_WRITE_ACK) {
+  if (status != kTwiDataWriteAck) {
     stop();
-    return timeout_ ? TIMEOUT : static_cast<uint8_t>(TWI_READ_REGISTER_ERROR);
+    return timeout_ ? kTimeout : static_cast<uint8_t>(kTwiReadRegisterError);
   }
 
   status = start();
-  if (status != TWI_REPEATED_START_TRANSMITTED) {
+  if (status != kTwiRepeatedStartTransmitted) {
     stop();
-    return timeout_ ? TIMEOUT : static_cast<uint8_t>(TWI_READ_RESTART_ERROR);
+    return timeout_ ? kTimeout : static_cast<uint8_t>(kTwiReadRestartError);
   }
 
-  status = write((addr << TWI_ADDRESS_SHIFT) | TWI_READ_BIT);
-  if (status != TWI_ADDRESS_READ_ACK) {
+  status = write((addr << kTwiAddressShift) | kTwiReadBit);
+  if (status != kTwiAddressReadAck) {
     stop();
-    return timeout_ ? TIMEOUT
-                    : static_cast<uint8_t>(TWI_READ_ADDRESS_READ_ERROR);
+    return timeout_ ? kTimeout
+                    : static_cast<uint8_t>(kTwiReadAddressReadError);
   }
 
   value = readNack();
   if (timeout_) {
-    return TIMEOUT;
+    return kTimeout;
   }
 
   stop();
 
-  return timeout_ ? TIMEOUT : static_cast<uint8_t>(TWI_READ_SUCCESS);
+  return timeout_ ? kTimeout : static_cast<uint8_t>(kTwiReadSuccess);
 }
 
 uint8_t TWI::writeReg(uint8_t addr, uint8_t reg, uint8_t value) {
   uint8_t status;
 
   status = start();
-  if (status != TWI_START_TRANSMITTED) {
+  if (status != kTwiStartTransmitted) {
     stop();
-    return timeout_ ? TIMEOUT : static_cast<uint8_t>(TWI_WRITE_START_ERROR);
+    return timeout_ ? kTimeout : static_cast<uint8_t>(kTwiWriteStartError);
   }
 
-  status = write((addr << TWI_ADDRESS_SHIFT) | TWI_WRITE_BIT);
-  if (status != TWI_ADDRESS_WRITE_ACK) {
+  status = write((addr << kTwiAddressShift) | kTwiWriteBit);
+  if (status != kTwiAddressWriteAck) {
     stop();
-    return timeout_ ? TIMEOUT : static_cast<uint8_t>(TWI_WRITE_ADDRESS_ERROR);
+    return timeout_ ? kTimeout : static_cast<uint8_t>(kTwiWriteAddressError);
   }
 
   status = write(reg);
-  if (status != TWI_DATA_WRITE_ACK) {
+  if (status != kTwiDataWriteAck) {
     stop();
-    return timeout_ ? TIMEOUT : static_cast<uint8_t>(TWI_WRITE_REGISTER_ERROR);
+    return timeout_ ? kTimeout : static_cast<uint8_t>(kTwiWriteRegisterError);
   }
 
   status = write(value);
-  if (status != TWI_DATA_WRITE_ACK) {
+  if (status != kTwiDataWriteAck) {
     stop();
-    return timeout_ ? TIMEOUT : static_cast<uint8_t>(TWI_WRITE_DATA_ERROR);
+    return timeout_ ? kTimeout : static_cast<uint8_t>(kTwiWriteDataError);
   }
 
   stop();
 
-  return timeout_ ? TIMEOUT : static_cast<uint8_t>(TWI_WRITE_SUCCESS);
+  return timeout_ ? kTimeout : static_cast<uint8_t>(kTwiWriteSuccess);
 }
 
 uint8_t TWI::readRegs(uint8_t addr, uint8_t reg, uint8_t *buf, uint8_t len) {
   if (len == 0 || buf == nullptr) {
-    return TWI_READ_INVALID_ARGUMENT;
+    return kTwiReadInvalidArgument;
   }
 
   uint8_t status;
 
   status = start();
-  if (status != TWI_START_TRANSMITTED) {
+  if (status != kTwiStartTransmitted) {
     stop();
-    return timeout_ ? TIMEOUT : static_cast<uint8_t>(TWI_READ_START_ERROR);
+    return timeout_ ? kTimeout : static_cast<uint8_t>(kTwiReadStartError);
   }
 
-  status = write((addr << TWI_ADDRESS_SHIFT) | TWI_WRITE_BIT);
-  if (status != TWI_ADDRESS_WRITE_ACK) {
+  status = write((addr << kTwiAddressShift) | kTwiWriteBit);
+  if (status != kTwiAddressWriteAck) {
     stop();
-    return timeout_ ? TIMEOUT
-                    : static_cast<uint8_t>(TWI_READ_ADDRESS_WRITE_ERROR);
+    return timeout_ ? kTimeout
+                    : static_cast<uint8_t>(kTwiReadAddressWriteError);
   }
 
   status = write(reg);
-  if (status != TWI_DATA_WRITE_ACK) {
+  if (status != kTwiDataWriteAck) {
     stop();
-    return timeout_ ? TIMEOUT : static_cast<uint8_t>(TWI_READ_REGISTER_ERROR);
+    return timeout_ ? kTimeout : static_cast<uint8_t>(kTwiReadRegisterError);
   }
 
   status = start();
-  if (status != TWI_REPEATED_START_TRANSMITTED) {
+  if (status != kTwiRepeatedStartTransmitted) {
     stop();
-    return timeout_ ? TIMEOUT : static_cast<uint8_t>(TWI_READ_RESTART_ERROR);
+    return timeout_ ? kTimeout : static_cast<uint8_t>(kTwiReadRestartError);
   }
 
-  status = write((addr << TWI_ADDRESS_SHIFT) | TWI_READ_BIT);
-  if (status != TWI_ADDRESS_READ_ACK) {
+  status = write((addr << kTwiAddressShift) | kTwiReadBit);
+  if (status != kTwiAddressReadAck) {
     stop();
-    return timeout_ ? TIMEOUT
-                    : static_cast<uint8_t>(TWI_READ_ADDRESS_READ_ERROR);
+    return timeout_ ? kTimeout
+                    : static_cast<uint8_t>(kTwiReadAddressReadError);
   }
 
   for (uint8_t i = 0; i < len - 1; i++) {
     buf[i] = readAck();
     if (timeout_) {
-      return TIMEOUT;
+      return kTimeout;
     }
   }
 
   buf[len - 1] = readNack();
   if (timeout_) {
-    return TIMEOUT;
+    return kTimeout;
   }
 
   stop();
 
-  return timeout_ ? TIMEOUT : static_cast<uint8_t>(TWI_READ_SUCCESS);
+  return timeout_ ? kTimeout : static_cast<uint8_t>(kTwiReadSuccess);
 }
 
 bool TWI::waitForTwint() {
   const uint16_t started_at = timerTicks();
 
   while (!(TWCR & (1 << TWINT))) {
-    if (mymillis(started_at) >= TIMEOUT_MS) {
+    if (mymillis(started_at) >= kTimeoutMs) {
       timeout_ = true;
-      TWCR = TWI_DISABLED;
+      TWCR = kTwiDisabled;
       return false;
     }
   }
@@ -252,9 +252,9 @@ bool TWI::waitForStopClear() {
   const uint16_t started_at = timerTicks();
 
   while (TWCR & (1 << TWSTO)) {
-    if (mymillis(started_at) >= TIMEOUT_MS) {
+    if (mymillis(started_at) >= kTimeoutMs) {
       timeout_ = true;
-      TWCR = TWI_DISABLED;
+      TWCR = kTwiDisabled;
       return false;
     }
   }

@@ -3,7 +3,7 @@
 
 #include <Arduino.h>
 
-enum TempStorageStatus : uint8_t { TEMP_STORAGE_SUCCESS = 0 };
+enum TempStorageStatus : uint8_t { kTempStorageSuccess = 0 };
 
 class TempStorage {
  public:

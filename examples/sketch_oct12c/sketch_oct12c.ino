@@ -9,12 +9,12 @@ constexpr uint32_t kSerialBaudRate = 9600;
 constexpr uint16_t kTimer3Compare = 62499;  // 1 с: 16 МГц / 256.
 
 TWI twi;
-BME280 sensor(twi, BME280_DEFAULT_ADDRESS);
+BME280 sensor(twi, kBme280DefaultAddress);
 TWILCD_output lcd_output(kLcdAddress, twi);
 MeteoService meteo(sensor, lcd_output);
 
 ISR(TIMER3_COMPA_vect) {
-  meteo.display(MeasurementType::Humidity);
+  meteo.display(MeasurementType::kHumidity);
 }
 
 void InitDisplayTimer() {
@@ -35,12 +35,12 @@ void setup() {
   Serial.begin(kSerialBaudRate);
   twi.init();
 
-  if (sensor.begin() != BME280_SUCCESS) {
+  if (sensor.begin() != kBme280Success) {
     Serial.println("BME280 initialization failed");
     while (true) {}
   }
 
-  if (lcd_output.init(LCD_CURSOR_STEADY) != LCD_SUCCESS) {
+  if (lcd_output.init(kLcdCursorSteady) != kLcdSuccess) {
     Serial.println("LCD initialization failed");
     while (true) {}
   }

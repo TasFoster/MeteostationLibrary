@@ -9,43 +9,43 @@ BME280::BME280(TWI &twi, uint8_t address) : bus_(twi) {
 uint8_t BME280::begin() {
   uint8_t status = reset();
 
-  if (status != BME280_SUCCESS) {
+  if (status != kBme280Success) {
     return status;
   }
 
   status = readCalib();
 
-  if (status != BME280_SUCCESS) {
-    return status + BME280_CALIBRATION_ERROR_OFFSET;
+  if (status != kBme280Success) {
+    return status + kBme280CalibrationErrorOffset;
   }
 
-  return BME280_SUCCESS;
+  return kBme280Success;
 }
 
 // Сброс датчика
 uint8_t BME280::reset() {
   uint8_t status =
-      bus_.writeReg(data_.addr, BME280_REG_RESET, BME280_RESET_COMMAND);
+      bus_.writeReg(data_.addr, kBme280RegReset, kBme280ResetCommand);
 
-  if (status != BME280_SUCCESS) {
+  if (status != kBme280Success) {
     return status;
   }
 
   const uint16_t started_at = bus_.timerTicks();
 
   while (true) {
-    SensorStatus result = checkStatus(StatusCheck::CalibrationUpdate);
+    SensorStatus result = checkStatus(StatusCheck::kCalibrationUpdate);
 
-    if (result == SensorStatus::Ready) {
-      return BME280_SUCCESS;
+    if (result == SensorStatus::kReady) {
+      return kBme280Success;
     }
 
-    if (result == SensorStatus::Error) {
-      return BME280_STATUS_READ_ERROR;
+    if (result == SensorStatus::kError) {
+      return kBme280StatusReadError;
     }
 
-    if (bus_.mymillis(started_at) > BME280_STATUS_TIMEOUT_MS) {
-      return BME280_STATUS_TIMEOUT;
+    if (bus_.mymillis(started_at) > kBme280StatusTimeoutMs) {
+      return kBme280StatusTimeout;
     }
   }
 }
@@ -56,78 +56,78 @@ uint8_t BME280::reset() {
 SensorStatus BME280::checkStatus(StatusCheck target) {
   uint8_t status = 0;
 
-  if (bus_.readReg(data_.addr, BME280_REG_STATUS, status) != BME280_SUCCESS) {
-    return SensorStatus::Error;
+  if (bus_.readReg(data_.addr, kBme280RegStatus, status) != kBme280Success) {
+    return SensorStatus::kError;
   }
 
-  if (target == StatusCheck::CalibrationUpdate) {
-    return (status & BME280_UPDATE_MASK) ? SensorStatus::Busy
-                                         : SensorStatus::Ready;
+  if (target == StatusCheck::kCalibrationUpdate) {
+    return (status & kBme280UpdateMask) ? SensorStatus::kBusy
+                                         : SensorStatus::kReady;
   }
 
-  if (target == StatusCheck::Measurement) {
-    return (status & BME280_MEASURING_MASK) ? SensorStatus::Busy
-                                            : SensorStatus::Ready;
+  if (target == StatusCheck::kMeasurement) {
+    return (status & kBme280MeasuringMask) ? SensorStatus::kBusy
+                                            : SensorStatus::kReady;
   }
 
-  return SensorStatus::Error;
+  return SensorStatus::kError;
 }
 
 // Проверка режима работы
 SensorMode BME280::checkMode() {
   uint8_t ctrl_meas = 0;
 
-  if (bus_.readReg(data_.addr, BME280_REG_CTRL_MEAS, ctrl_meas) !=
-      BME280_SUCCESS) {
-    return SensorMode::Unknown;
+  if (bus_.readReg(data_.addr, kBme280RegCtrlMeas, ctrl_meas) !=
+      kBme280Success) {
+    return SensorMode::kUnknown;
   }
 
-  SensorMode mode = static_cast<SensorMode>(ctrl_meas & BME280_MODE_MASK);
+  SensorMode mode = static_cast<SensorMode>(ctrl_meas & kBme280ModeMask);
 
-  if (mode == SensorMode::Sleep) {
-    return SensorMode::Sleep;
+  if (mode == SensorMode::kSleep) {
+    return SensorMode::kSleep;
   }
 
-  if (mode == SensorMode::Forced || mode == SensorMode::ForcedAlternate) {
-    return SensorMode::Forced;
+  if (mode == SensorMode::kForced || mode == SensorMode::kForcedAlternate) {
+    return SensorMode::kForced;
   }
 
-  return SensorMode::Normal;
+  return SensorMode::kNormal;
 }
 
 // Настройка регистра CONFIG
 uint8_t BME280::setConfig(StandbyTime t_sb, Filter filter, Spi3Wire spi3w_en) {
-  if (t_sb > StandbyTime::Ms20 || filter > Filter::Code7 ||
-      spi3w_en > Spi3Wire::Enabled) {
-    return BME280_INVALID_ARGUMENT;
+  if (t_sb > StandbyTime::kMs20 || filter > Filter::kCode7 ||
+      spi3w_en > Spi3Wire::kEnabled) {
+    return kBme280InvalidArgument;
   }
 
   uint8_t config = (static_cast<uint8_t>(t_sb) << 5) |
                    (static_cast<uint8_t>(filter) << 2) |
                    static_cast<uint8_t>(spi3w_en);
 
-  return bus_.writeReg(data_.addr, BME280_REG_CONFIG, config);
+  return bus_.writeReg(data_.addr, kBme280RegConfig, config);
 }
 
 // Чтение температуры
 uint8_t BME280::readTemp(uint32_t &res, Oversampling osrs, SensorMode mode) {
-  if (osrs > Oversampling::X16 || mode < SensorMode::Forced ||
-      mode > SensorMode::Normal) {
-    return BME280_INVALID_ARGUMENT;
+  if (osrs > Oversampling::kX16 || mode < SensorMode::kForced ||
+      mode > SensorMode::kNormal) {
+    return kBme280InvalidArgument;
   }
 
   uint8_t status =
-      setConfig(StandbyTime::Ms1000, Filter::X4, Spi3Wire::Disabled);
+      setConfig(StandbyTime::kMs1000, Filter::kX4, Spi3Wire::kDisabled);
 
-  if (status != BME280_SUCCESS) {
+  if (status != kBme280Success) {
     return status;
   }
 
   // Влажность отключена.
-  status = bus_.writeReg(data_.addr, BME280_REG_CTRL_HUM,
-                        static_cast<uint8_t>(Oversampling::Skipped));
+  status = bus_.writeReg(data_.addr, kBme280RegCtrlHum,
+                        static_cast<uint8_t>(Oversampling::kSkipped));
 
-  if (status != BME280_SUCCESS) {
+  if (status != kBme280Success) {
     return status;
   }
 
@@ -135,122 +135,122 @@ uint8_t BME280::readTemp(uint32_t &res, Oversampling osrs, SensorMode mode) {
   uint8_t ctrl_meas =
       (static_cast<uint8_t>(osrs) << 5) | static_cast<uint8_t>(mode);
 
-  status = bus_.writeReg(data_.addr, BME280_REG_CTRL_MEAS, ctrl_meas);
+  status = bus_.writeReg(data_.addr, kBme280RegCtrlMeas, ctrl_meas);
 
-  if (status != BME280_SUCCESS) {
+  if (status != kBme280Success) {
     return status;
   }
 
   // Forced: ожидание измерения.
-  if (mode != SensorMode::Normal) {
+  if (mode != SensorMode::kNormal) {
     const uint16_t started_at = bus_.timerTicks();
 
-    while (checkStatus(StatusCheck::Measurement) == SensorStatus::Busy) {
-      if (bus_.mymillis(started_at) > BME280_STATUS_TIMEOUT_MS) {
-        return BME280_STATUS_TIMEOUT;
+    while (checkStatus(StatusCheck::kMeasurement) == SensorStatus::kBusy) {
+      if (bus_.mymillis(started_at) > kBme280StatusTimeoutMs) {
+        return kBme280StatusTimeout;
       }
     }
 
-    if (checkStatus(StatusCheck::Measurement) == SensorStatus::Error) {
-      return BME280_STATUS_READ_ERROR;
+    if (checkStatus(StatusCheck::kMeasurement) == SensorStatus::kError) {
+      return kBme280StatusReadError;
     }
   }
 
   uint8_t buf[3];
 
-  status = bus_.readRegs(data_.addr, BME280_REG_TEMPERATURE, buf, 3);
+  status = bus_.readRegs(data_.addr, kBme280RegTemperature, buf, 3);
 
-  if (status != BME280_SUCCESS) {
+  if (status != kBme280Success) {
     return status;
   }
 
-  res = (static_cast<uint32_t>(buf[BME280_DATA_MSB]) << 12) |
-        (static_cast<uint32_t>(buf[BME280_DATA_LSB]) << 4) |
-        (static_cast<uint32_t>(buf[BME280_DATA_XLSB]) >> 4);
+  res = (static_cast<uint32_t>(buf[kBme280DataMsb]) << 12) |
+        (static_cast<uint32_t>(buf[kBme280DataLsb]) << 4) |
+        (static_cast<uint32_t>(buf[kBme280DataXlsb]) >> 4);
 
-  return BME280_SUCCESS;
+  return kBme280Success;
 }
 
 // Чтение влажности
 uint8_t BME280::readHum(uint32_t &res, Oversampling osrs_h, Oversampling osrs_t,
                         SensorMode mode) {
-  if (osrs_h > Oversampling::X16 || osrs_t > Oversampling::X16 ||
-      mode < SensorMode::Forced || mode > SensorMode::Normal) {
-    return BME280_INVALID_ARGUMENT;
+  if (osrs_h > Oversampling::kX16 || osrs_t > Oversampling::kX16 ||
+      mode < SensorMode::kForced || mode > SensorMode::kNormal) {
+    return kBme280InvalidArgument;
   }
 
   uint8_t status =
-      setConfig(StandbyTime::Ms1000, Filter::X4, Spi3Wire::Disabled);
+      setConfig(StandbyTime::kMs1000, Filter::kX4, Spi3Wire::kDisabled);
 
-  if (status != BME280_SUCCESS) {
+  if (status != kBme280Success) {
     return status;
   }
 
   // Порядок записи: CTRL_HUM → CTRL_MEAS.
-  status = bus_.writeReg(data_.addr, BME280_REG_CTRL_HUM,
+  status = bus_.writeReg(data_.addr, kBme280RegCtrlHum,
                         static_cast<uint8_t>(osrs_h));
 
-  if (status != BME280_SUCCESS) {
+  if (status != kBme280Success) {
     return status;
   }
 
   uint8_t ctrl_meas =
       (static_cast<uint8_t>(osrs_t) << 5) | static_cast<uint8_t>(mode);
 
-  status = bus_.writeReg(data_.addr, BME280_REG_CTRL_MEAS, ctrl_meas);
-  mydelay(BME280_MEASUREMENT_START_mydelay_MS);
-  if (status != BME280_SUCCESS) {
+  status = bus_.writeReg(data_.addr, kBme280RegCtrlMeas, ctrl_meas);
+  mydelay(kBme280MeasurementStartDelayMs);
+  if (status != kBme280Success) {
     return status;
   }
 
-  if (mode != SensorMode::Normal) {
+  if (mode != SensorMode::kNormal) {
     const uint16_t started_at = bus_.timerTicks();
 
-    while (checkStatus(StatusCheck::Measurement) == SensorStatus::Busy) {
-      if (bus_.mymillis(started_at) > BME280_STATUS_TIMEOUT_MS) {
-        return BME280_STATUS_TIMEOUT;
+    while (checkStatus(StatusCheck::kMeasurement) == SensorStatus::kBusy) {
+      if (bus_.mymillis(started_at) > kBme280StatusTimeoutMs) {
+        return kBme280StatusTimeout;
       }
     }
 
-    if (checkStatus(StatusCheck::Measurement) == SensorStatus::Error) {
-      return BME280_STATUS_READ_ERROR;
+    if (checkStatus(StatusCheck::kMeasurement) == SensorStatus::kError) {
+      return kBme280StatusReadError;
     }
   }
 
   uint8_t buf[2];
 
-  status = bus_.readRegs(data_.addr, BME280_REG_HUMIDITY, buf, 2);
+  status = bus_.readRegs(data_.addr, kBme280RegHumidity, buf, 2);
 
-  if (status != BME280_SUCCESS) {
+  if (status != kBme280Success) {
     return status;
   }
 
-  res = (static_cast<uint32_t>(buf[BME280_DATA_MSB]) << 8) |
-      buf[BME280_DATA_LSB];
+  res = (static_cast<uint32_t>(buf[kBme280DataMsb]) << 8) |
+      buf[kBme280DataLsb];
 
-  return BME280_SUCCESS;
+  return kBme280Success;
 }
 
 // Чтение давления
 uint8_t BME280::readPressure(uint32_t &res, Oversampling osrs_p,
                              Oversampling osrs_t, SensorMode mode) {
-  if (osrs_p > Oversampling::X16 || osrs_t > Oversampling::X16 ||
-      mode < SensorMode::Forced || mode > SensorMode::Normal) {
-    return BME280_INVALID_ARGUMENT;
+  if (osrs_p > Oversampling::kX16 || osrs_t > Oversampling::kX16 ||
+      mode < SensorMode::kForced || mode > SensorMode::kNormal) {
+    return kBme280InvalidArgument;
   }
 
   uint8_t status =
-      setConfig(StandbyTime::Ms1000, Filter::X4, Spi3Wire::Disabled);
+      setConfig(StandbyTime::kMs1000, Filter::kX4, Spi3Wire::kDisabled);
 
-  if (status != BME280_SUCCESS) {
+  if (status != kBme280Success) {
     return status;
   }
 
   // Влажность отключена.
-  status = bus_.writeReg(data_.addr, BME280_REG_CTRL_HUM,
-                        static_cast<uint8_t>(Oversampling::Skipped));
+  status = bus_.writeReg(data_.addr, kBme280RegCtrlHum,
+                        static_cast<uint8_t>(Oversampling::kSkipped));
 
-  if (status != BME280_SUCCESS) {
+  if (status != kBme280Success) {
     return status;
   }
 
@@ -258,39 +258,39 @@ uint8_t BME280::readPressure(uint32_t &res, Oversampling osrs_p,
                       (static_cast<uint8_t>(osrs_p) << 2) |
                       static_cast<uint8_t>(mode);
 
-  status = bus_.writeReg(data_.addr, BME280_REG_CTRL_MEAS, ctrl_meas);
+  status = bus_.writeReg(data_.addr, kBme280RegCtrlMeas, ctrl_meas);
 
-  if (status != BME280_SUCCESS) {
+  if (status != kBme280Success) {
     return status;
   }
 
-  if (mode != SensorMode::Normal) {
+  if (mode != SensorMode::kNormal) {
     const uint16_t started_at = bus_.timerTicks();
 
-    while (checkStatus(StatusCheck::Measurement) == SensorStatus::Busy) {
-      if (bus_.mymillis(started_at) > BME280_STATUS_TIMEOUT_MS) {
-        return BME280_STATUS_TIMEOUT;
+    while (checkStatus(StatusCheck::kMeasurement) == SensorStatus::kBusy) {
+      if (bus_.mymillis(started_at) > kBme280StatusTimeoutMs) {
+        return kBme280StatusTimeout;
       }
     }
 
-    if (checkStatus(StatusCheck::Measurement) == SensorStatus::Error) {
-      return BME280_STATUS_READ_ERROR;
+    if (checkStatus(StatusCheck::kMeasurement) == SensorStatus::kError) {
+      return kBme280StatusReadError;
     }
   }
 
   uint8_t buf[3];
 
-  status = bus_.readRegs(data_.addr, BME280_REG_PRESSURE, buf, 3);
+  status = bus_.readRegs(data_.addr, kBme280RegPressure, buf, 3);
 
-  if (status != BME280_SUCCESS) {
+  if (status != kBme280Success) {
     return status;
   }
 
-  res = (static_cast<uint32_t>(buf[BME280_DATA_MSB]) << 12) |
-        (static_cast<uint32_t>(buf[BME280_DATA_LSB]) << 4) |
-        (static_cast<uint32_t>(buf[BME280_DATA_XLSB]) >> 4);
+  res = (static_cast<uint32_t>(buf[kBme280DataMsb]) << 12) |
+        (static_cast<uint32_t>(buf[kBme280DataLsb]) << 4) |
+        (static_cast<uint32_t>(buf[kBme280DataXlsb]) >> 4);
 
-  return BME280_SUCCESS;
+  return kBme280Success;
 }
 
 // Калибровочные коэффициенты
@@ -299,15 +299,15 @@ uint8_t BME280::readCalib() {
   uint8_t buf2[7];
 
   uint8_t status =
-      bus_.readRegs(data_.addr, BME280_REG_CALIBRATION_MAIN, buf1, 26);
+      bus_.readRegs(data_.addr, kBme280RegCalibrationMain, buf1, 26);
 
-  if (status != BME280_SUCCESS) {
+  if (status != kBme280Success) {
     return status;
   }
 
-  status = bus_.readRegs(data_.addr, BME280_REG_CALIBRATION_HUMIDITY, buf2, 7);
+  status = bus_.readRegs(data_.addr, kBme280RegCalibrationHumidity, buf2, 7);
 
-  if (status != BME280_SUCCESS) {
+  if (status != kBme280Success) {
     return status;
   }
 
@@ -357,7 +357,7 @@ uint8_t BME280::readCalib() {
   data_.dig_H5 = h5;
   data_.dig_H6 = static_cast<int8_t>(buf2[6]);
 
-  return BME280_SUCCESS;
+  return kBme280Success;
 }
 
 // Компенсация температуры
@@ -383,8 +383,8 @@ double BME280::calculateTemp(uint32_t adc_T) {
 double BME280::calculateHum(uint32_t adc_H) {
   uint32_t rawTemp = 0;
 
-  if (readTemp(rawTemp, Oversampling::X1, SensorMode::Forced) !=
-      BME280_SUCCESS) {
+  if (readTemp(rawTemp, Oversampling::kX1, SensorMode::kForced) !=
+      kBme280Success) {
     return -1.0;
   }
 
@@ -414,8 +414,8 @@ double BME280::calculateHum(uint32_t adc_H) {
 double BME280::calculatePressure(uint32_t adc_P) {
   uint32_t rawTemp = 0;
 
-  if (readTemp(rawTemp, Oversampling::X1, SensorMode::Forced) !=
-      BME280_SUCCESS) {
+  if (readTemp(rawTemp, Oversampling::kX1, SensorMode::kForced) !=
+      kBme280Success) {
     return -1.0;
   }
 
@@ -459,53 +459,54 @@ uint8_t BME280::readTemperature(double &temperature) {
   uint32_t rawTemperature = 0;
 
   uint8_t status =
-      readTemp(rawTemperature, Oversampling::X1, SensorMode::Forced);
+      readTemp(rawTemperature, Oversampling::kX1, SensorMode::kForced);
 
-  if (status != BME280_SUCCESS) {
+  if (status != kBme280Success) {
     return status;
   }
 
   temperature = calculateTemp(rawTemperature);
 
-  return BME280_SUCCESS;
+  return kBme280Success;
 }
 
 // Давление, Па.
 uint8_t BME280::readPressure(double &pressure) {
   uint32_t rawPressure = 0;
 
-  uint8_t status = readPressure(rawPressure, Oversampling::X1, Oversampling::X1,
-                                SensorMode::Forced);
+  uint8_t status =
+      readPressure(rawPressure, Oversampling::kX1, Oversampling::kX1,
+                   SensorMode::kForced);
 
-  if (status != BME280_SUCCESS) {
+  if (status != kBme280Success) {
     return status;
   }
 
   pressure = calculatePressure(rawPressure);
 
   if (pressure < 0) {
-    return BME280_COMPENSATION_ERROR;
+    return kBme280CompensationError;
   }
 
-  return BME280_SUCCESS;
+  return kBme280Success;
 }
 
 // Относительная влажность, %.
 uint8_t BME280::readHumidity(double &humidity) {
   uint32_t rawHumidity = 0;
 
-  uint8_t status = readHum(rawHumidity, Oversampling::X1, Oversampling::X1,
-                           SensorMode::Forced);
+  uint8_t status = readHum(rawHumidity, Oversampling::kX1, Oversampling::kX1,
+                           SensorMode::kForced);
 
-  if (status != BME280_SUCCESS) {
+  if (status != kBme280Success) {
     return status;
   }
 
   humidity = calculateHum(rawHumidity);
 
   if (humidity < 0) {
-    return BME280_COMPENSATION_ERROR;
+    return kBme280CompensationError;
   }
 
-  return BME280_SUCCESS;
+  return kBme280Success;
 }
