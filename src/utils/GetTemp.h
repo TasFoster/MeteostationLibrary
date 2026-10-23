@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Task.h"
-#include "MeteostationLibrary.h"
+#include "../services/MeteoService.h"
 
 class GetTemp : public Task{
     
