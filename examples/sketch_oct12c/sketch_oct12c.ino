@@ -12,11 +12,11 @@ TWI twi;
 BME280 sensor(twi, kBme280DefaultAddress);
 TWILCD_output lcd_output(kLcdAddress, twi);
 MeteoService meteo(sensor, lcd_output);
+//Task<MeteoService, &MeteoService::display, MeasurementType> task(meteo, &MeteoService::display, MeasurementType::kTemperature);
 
 ISR(TIMER3_COMPA_vect) {
-  meteo.display(MeasurementType::kHumidity);
+ // task.execute()
 }
-
 void InitDisplayTimer() {
   ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
     TCCR3B = 0;

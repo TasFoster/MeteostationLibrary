@@ -8,5 +8,6 @@
 #include "output/OutputInterface.h"
 #include "output/SerialOutput.h"
 #include "output/TWILCD_output.h"
+#include "utils/TaskWrapper.h"
 
 #endif
