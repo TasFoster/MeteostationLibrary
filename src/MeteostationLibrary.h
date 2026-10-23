@@ -9,6 +9,7 @@
 #include "output/SerialOutput.h"
 #include "output/TWILCD_output.h"
 #include "utils/TaskWrapper.h"
+#include "utils/Tasker.h"
 #include "utils/GetTemp.h"
 #include "utils/GetPress.h"
 #include "utils/GetHum.h"
