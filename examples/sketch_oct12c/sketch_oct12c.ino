@@ -1,5 +1,5 @@
 // Arduino Mega 2560, 16 МГц: BME280 (0x76), LCD I2C (0x27).
-// Timer3: вывод раз в секунду. Timer4: таймауты.
+// Timer3: одна задача раз в секунду по кругу. Timer4: таймауты.
 #include <MeteostationLibrary.h>
 
 constexpr uint8_t kLcdAddress = 0x27;
@@ -34,8 +34,10 @@ void setup() {
     while (true) {}
   }
 
-  // Все три задачи выполняются по порядку; на LCD остаётся влажность.
-  tasker.start();
+  if (!tasker.start()) {
+    Serial.println("Invalid task interval");
+    while (true) {}
+  }
 }
 
 void loop() {}
