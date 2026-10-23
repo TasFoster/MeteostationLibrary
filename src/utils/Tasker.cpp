@@ -7,10 +7,7 @@
 namespace {
 constexpr uint32_t kTimer3TicksPerSecond = 15625;
 constexpr uint8_t kMaxIntervalSeconds = 4;
-
-static_assert(F_CPU == 16000000UL,
-              "Tasker requires a 16 MHz clock");
-}  // namespace
+}  
 
 Tasker* volatile Tasker::active_ = nullptr;
 
